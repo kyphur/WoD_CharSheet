@@ -1,0 +1,2893 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World of Darkness Character Generator</title>
+  <style>
+:root {
+  --ink: #000;
+  --paper: #fff;
+  --accent: #7a1010;
+  --line: #000;
+  --soft: #f2f2f2;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--soft);
+  color: var(--ink);
+  font: 16px/1.4 Georgia, "Times New Roman", serif;
+}
+
+/* ---------- controls ---------- */
+.controls {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--paper);
+  border-bottom: 2px solid var(--ink);
+  font-family: system-ui, Segoe UI, Arial, sans-serif;
+}
+.controls #options { display: flex; flex-wrap: wrap; gap: 12px; }
+.controls label { font-weight: 600; }
+.controls select {
+  font: inherit;
+  font-weight: 400;
+  padding: 6px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.controls button {
+  font: inherit;
+  font-weight: 700;
+  padding: 8px 16px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  cursor: pointer;
+  background: var(--paper);
+  color: var(--ink);
+}
+.controls button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.controls .spacer { flex: 1; }
+.controls input.num {
+  width: 5em;
+  font: inherit;
+  font-weight: 400;
+  padding: 6px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+}
+
+/* ---------- editing ---------- */
+.hint {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  font-family: system-ui, Segoe UI, Arial, sans-serif;
+  font-size: 14px;
+}
+.field input.value {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--ink);
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+.field input.value:hover { background: var(--soft); }
+.field input.value:focus { outline: 2px solid var(--accent); background: #fff; }
+.dot { cursor: pointer; }
+.dot:hover { outline: 2px solid var(--accent); outline-offset: 1px; }
+select.add {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  font: 14px system-ui, Segoe UI, Arial, sans-serif;
+  padding: 4px 6px;
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+}
+.remove {
+  margin-right: 6px;
+  width: 20px;
+  height: 20px;
+  line-height: 16px;
+  padding: 0;
+  font: 700 15px system-ui, Arial, sans-serif;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.remove:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+ul li { margin: 2px 0; }
+ul:has(.remove) { list-style: none; padding-left: 0; }
+.cols.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cols.one { grid-template-columns: 1fr; }
+.cols.one ul { columns: 3; column-gap: 24px; }
+
+/* ---------- sheet ---------- */
+#sheet {
+  max-width: 1000px;
+  margin: 16px auto 32px;
+  padding: 24px 28px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+}
+.sheet-title h1 {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 28px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.header-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px 20px;
+  margin-bottom: 8px;
+}
+.field { display: flex; gap: 6px; border-bottom: 1px solid var(--line); padding: 2px 0; }
+.field .label { font-weight: 700; white-space: nowrap; }
+.field .value { flex: 1; }
+
+section { margin-top: 14px; }
+h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  padding: 2px 0;
+}
+h3 { margin: 0 0 4px; font-size: 15px; text-align: center; }
+
+.cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 24px; }
+.trait { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 1px 0; }
+.trait.zero .trait-name { font-weight: 400; }
+.trait-name { font-weight: 600; }
+.empty { margin: 0; font-style: italic; text-align: center; }
+ul { margin: 0; padding-left: 20px; }
+
+.dots { display: inline-flex; gap: 3px; flex-shrink: 0; }
+.dot {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.dot.on { background: var(--ink); }
+
+.boxes { display: inline-flex; gap: 2px; }
+.box {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid var(--ink);
+}
+
+.split { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border: 1px solid var(--ink); padding: 2px 6px; text-align: center; }
+th { background: var(--soft); }
+.health td { border: none; border-bottom: 1px solid var(--ink); text-align: left; }
+.health td:nth-child(2) { text-align: center; width: 40px; }
+.health td:last-child { width: 24px; }
+
+.warn { font-weight: 700; color: var(--accent); }
+
+/* ---------- player build: points box ---------- */
+.budget {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 8px;
+  font-family: system-ui, Segoe UI, Arial, sans-serif;
+  font-size: 15px;
+}
+.budget h2 { border: 0; margin-bottom: 6px; }
+.brow { padding: 5px 0; border-bottom: 1px solid #bbb; }
+.brow > strong { display: inline-block; min-width: 9em; }
+.chip {
+  display: inline-block;
+  margin: 2px 4px 2px 0;
+  padding: 2px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  font-weight: 600;
+}
+.chip.ok { background: #fff; }
+.chip.left { background: #fff3b0; }
+.chip.over { background: var(--accent); border-color: var(--accent); color: #fff; }
+.bhint { font-size: 13px; margin-top: 2px; }
+.warnings { margin: 8px 0 0; padding-left: 20px; color: var(--accent); font-weight: 700; }
+.bbuttons { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
+button[data-action], .xp-add button {
+  font: 700 15px system-ui, Segoe UI, Arial, sans-serif;
+  padding: 7px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+button[data-action].primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ---------- experience ---------- */
+.xp-totals { font-size: 17px; }
+.xp-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 6px 0; font-family: system-ui, Segoe UI, Arial, sans-serif; }
+.xp-add input[type="number"], .xp-add input[type="text"] {
+  font: inherit;
+  padding: 6px 8px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+}
+.xp-add input[type="number"] { width: 5em; }
+.xp-add input[type="text"] { flex: 1; min-width: 12em; }
+.xp-free { font-weight: 600; }
+.xp-log { columns: 2; column-gap: 24px; }
+
+/* ---------- small screens ---------- */
+@media (max-width: 720px) {
+  #sheet { margin: 0; padding: 16px; border-left: 0; border-right: 0; }
+  .header-grid, .cols, .cols.two { grid-template-columns: 1fr; }
+  .split { grid-template-columns: 1fr; }
+}
+
+/* ---------- printing / Save as PDF ---------- */
+@media print {
+  @page { size: letter; margin: 0.35in; }
+  body { background: #fff; font-size: 11px; line-height: 1.25; }
+  .controls, .no-print { display: none !important; }
+  ul:has(.remove) { list-style: disc; padding-left: 16px; }
+  .cols.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #sheet { margin: 0; padding: 0; border: 0; max-width: none; }
+  .sheet-title h1 { font-size: 22px; margin-bottom: 6px; }
+  .header-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px 16px; }
+  .cols { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 18px; }
+  .split { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; }
+  section { margin-top: 8px; break-inside: avoid; }
+  h2 { font-size: 13px; margin-bottom: 4px; padding: 1px 0; }
+  h3 { font-size: 12px; margin-bottom: 2px; }
+  .trait { padding: 0; }
+  .dots { gap: 2px; }
+  .dot { width: 8px; height: 8px; border-width: 1px; }
+  .boxes { gap: 1px; }
+  .box { width: 9px; height: 9px; border-width: 1px; }
+  th, td { padding: 1px 4px; }
+  p { margin: 4px 0; }
+  .xp-totals { font-size: 11px; }
+  .xp-log { columns: 3; font-size: 10px; }
+}
+
+</style>
+</head>
+<body>
+  <div class="controls">
+    <label>Sheet <select id="mode"><option value="npc">NPC (random)</option><option value="pc">Player character (build it)</option></select></label>
+    <label>Game <select id="game"></select></label>
+    <div id="options"></div>
+    <div class="spacer"></div>
+    <button id="generate" class="primary">Generate</button>
+    <button id="save">Save character</button>
+    <button id="open">Open character</button>
+    <input type="file" id="open-file" accept=".json,application/json" hidden>
+    <button id="print">Print / Save as PDF</button>
+  </div>
+
+  <main id="sheet"></main>
+
+  <script>
+/*
+  Shared code for the World of Darkness character generator.
+  Each game lives in games/<name>.js and registers itself with WOD.registerGame().
+
+  A character is one plain object (header, sections, table, ...). The sheet is
+  drawn from that object, and every edit on the sheet changes the object and
+  redraws, so what you see is always what gets printed or saved.
+
+  Two kinds of sheet:
+    NPC (c.mode "npc")     random character, edit freely.
+    Player (c.mode "pc")   c.stage "build": the player spends creation points, shown in a points box;
+                           c.stage "play":  raising a dot spends experience points (c.xp).
+  Any NPC can also start tracking experience.
+*/
+window.WOD = (function () {
+  const games = [];
+  const SAVE_KEY = "wod-character-generator:last";
+
+  const random = {
+    int(min, max) {
+      return min + Math.floor(Math.random() * (max - min + 1));
+    },
+    pick(list) {
+      return list.length ? list[Math.floor(Math.random() * list.length)] : undefined;
+    },
+    chance(p) {
+      return Math.random() < p;
+    },
+    shuffle(list) {
+      const a = list.slice();
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    },
+    // weights: { name: weight }
+    weighted(weights) {
+      const entries = Object.entries(weights).filter(([, w]) => w > 0);
+      let roll = Math.random() * entries.reduce((s, [, w]) => s + w, 0);
+      for (const [k, w] of entries) {
+        roll -= w;
+        if (roll < 0) return k;
+      }
+      return entries[entries.length - 1][0];
+    },
+    // Add `points` dots one at a time to random keys, never going above `max`.
+    distribute(obj, keys, points, max) {
+      for (let p = 0; p < points; p++) {
+        const open = keys.filter((k) => (obj[k] || 0) < max);
+        if (!open.length) return points - p; // dots that couldn't be placed
+        const k = random.pick(open);
+        obj[k] = (obj[k] || 0) + 1;
+      }
+      return 0;
+    },
+  };
+
+  function registerGame(game) {
+    games.push(game);
+  }
+
+  // ---------- experience ----------
+
+  const xpTotals = (c) => {
+    const log = (c.xp && c.xp.log) || [];
+    const earned = log.filter((e) => e.type === "earn").reduce((s, e) => s + e.xp, 0);
+    const spent = log.filter((e) => e.type === "spend").reduce((s, e) => s + e.xp, 0);
+    return { earned, spent, left: earned - spent };
+  };
+  const traitKey = (s, col, name) => `${s.title}|${col.title.split(" (")[0]}|${name}`;
+
+  // Remember every rating as it is now; experience is only charged above these.
+  function startXp(c) {
+    c.stage = "play";
+    c.xp = c.xp || { log: [] };
+    c.xpBase = { gifts: [] };
+    for (const s of c.sections) {
+      for (const col of s.columns) {
+        if (col.items) for (const [n, v] of col.items) c.xpBase[traitKey(s, col, n)] = v;
+        if (col.title === "Gifts") c.xpBase.gifts = col.list.slice();
+      }
+    }
+  }
+
+  // ---------- rendering ----------
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function dots(value, max, path) {
+    let out = "";
+    for (let i = 1; i <= max; i++) {
+      out += `<span class="dot${i <= value ? " on" : ""}" data-dot="${path}.${i}" title="Set to ${i}"></span>`;
+    }
+    return `<span class="dots" aria-label="${value} of ${max}">${out}</span>`;
+  }
+
+  function boxes(n) {
+    return `<span class="boxes">${'<span class="box"></span>'.repeat(n)}</span>`;
+  }
+
+  function addSelect(path, groups, allowCustom, label) {
+    let html = `<select class="add no-print" data-add="${path}"><option value="">+ ${esc(label)}&hellip;</option>`;
+    for (const g of groups) {
+      if (!g.options.length) continue;
+      if (g.group) html += `<optgroup label="${esc(g.group)}">`;
+      html += g.options.map((o) => `<option value="${esc(o)}">${esc(o)}</option>`).join("");
+      if (g.group) html += `</optgroup>`;
+    }
+    if (allowCustom) html += `<option value="__custom">Type my own&hellip;</option>`;
+    return html + `</select>`;
+  }
+
+  function renderColumn(col, si, ci) {
+    const path = `${si}.${ci}`;
+    let html = `<div class="col"><h3>${esc(col.title)}</h3>`;
+    if (col.items) {
+      if (!col.items.length) html += `<p class="empty">None</p>`;
+      col.items.forEach(([name, value, max], ii) => {
+        const remove = col.removable ? `<button class="remove no-print" data-remove="${path}.${ii}" title="Remove">&times;</button>` : "";
+        html += `<div class="trait${value ? "" : " zero"}"><span class="trait-name">${remove}${esc(name)}</span>${dots(value, max, `${path}.${ii}`)}</div>`;
+      });
+      const have = col.items.map((x) => x[0]);
+      const options = (col.addOptions || []).filter((o) => !have.includes(o));
+      if (options.length || col.allowCustom) html += addSelect(path, [{ options }], col.allowCustom, col.addLabel || "Add");
+    }
+    if (col.boxes) html += `<div class="trait"><span class="trait-name">Current</span>${boxes(col.boxes)}</div>`;
+    if (col.list) {
+      html += col.list.length
+        ? `<ul>${col.list.map((x, ii) => `<li><button class="remove no-print" data-remove="${path}.${ii}" title="Remove">&times;</button>${esc(x)}</li>`).join("")}</ul>`
+        : `<p class="empty">None</p>`;
+      if (col.listOptions || col.allowCustom) {
+        const groups = (col.listOptions || []).map((g) => ({ group: g.group, options: g.options.filter((o) => !col.list.includes(o)) }));
+        html += addSelect(path, groups, col.allowCustom, col.addLabel || "Add");
+      }
+    }
+    return html + "</div>";
+  }
+
+  // The points box shown while a player builds a character.
+  function renderBudget(c) {
+    const r = c.build.result;
+    const chip = (name, have, of) => {
+      const cls = have === of ? "ok" : have < of ? "left" : "over";
+      const tail = have === of ? " ✓" : have < of ? ` — ${of - have} left` : ` — ${have - of} extra (freebies)`;
+      return `<span class="chip ${cls}">${esc(name)} ${have}/${of}${tail}</span>`;
+    };
+    let html = `<div class="budget no-print"><h2>Character Creation Points</h2>`;
+    for (const row of r.rows) {
+      html += `<div class="brow"><strong>${esc(row.title)}</strong> ${row.parts.map((p) => chip(row.parts.length > 1 ? p.name : "", p.have, p.of)).join(" ")}`;
+      if (row.hint) html += `<div class="bhint">${esc(row.hint)}</div>`;
+      html += `</div>`;
+    }
+    const left = r.total - r.used;
+    const cls = left === 0 ? "ok" : left > 0 ? "left" : "over";
+    html += `<div class="brow"><strong>Freebie points</strong> <span class="chip ${cls}">${r.used} of ${r.total} used${left > 0 ? ` — ${left} left` : left < 0 ? ` — ${-left} too many` : " ✓"}</span>`;
+    if (r.flawBonus) html += ` <span class="bhint">(includes ${r.flawBonus} from Flaws)</span>`;
+    html += `<div class="bhint">Costs: Attribute 5 · Ability 2 · Background 1 · Gift 7 · Rage 1 · Gnosis 2 · Willpower 1 · Merits cost their points · Flaws give up to 7.</div>`;
+    if (r.freebieUse.length) html += `<div class="bhint">Spent on: ${esc(r.freebieUse.map((x) => `${x.what} (${x.cost})`).join(", "))}</div>`;
+    html += `</div>`;
+    if (r.warnings.length) html += `<ul class="warnings">${r.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`;
+    html += `<div class="bbuttons"><button data-action="fill">Fill the rest randomly</button> <button data-action="finish" class="primary">Finish character</button></div>`;
+    return html + `</div>`;
+  }
+
+  function renderXp(c) {
+    const t = xpTotals(c);
+    let html = `<section class="xp"><h2>Experience</h2>`;
+    html += `<p class="xp-totals"><strong>Earned:</strong> ${t.earned} &nbsp; <strong>Spent:</strong> ${t.spent} &nbsp; <strong>Unspent:</strong> <span class="${t.left < 0 ? "warn" : ""}">${t.left}</span></p>`;
+    html += `<div class="xp-add no-print">
+      <input type="number" id="xp-amount" min="1" max="999" placeholder="XP" aria-label="Experience points to add">
+      <input type="text" id="xp-note" placeholder="What for? (e.g. Session 3)" aria-label="Reason">
+      <button data-action="xp-add" class="primary">Add experience</button>
+      <label class="xp-free"><input type="checkbox" data-action="free-edit"${c.freeEdit ? " checked" : ""}> Fix mistakes without spending XP</label>
+    </div>`;
+    html += `<p class="bhint no-print">Click a dot to raise a rating with experience: Attribute = current × 4, Ability = current × 2 (new: 3), Gift = Level × 3 (other lists: × 5), Rage = current, Gnosis = current × 2, Willpower = current, Background = current × 3 (new: 3, with the Storyteller's OK). Lowering a dot you bought gives the XP back.</p>`;
+    const log = c.xp.log;
+    if (log.length) {
+      html += `<ul class="xp-log">${log
+        .map((e, i) => {
+          const rm = e.type === "earn" ? `<button class="remove no-print" data-xp-remove="${i}" title="Remove">&times;</button>` : "";
+          const amount = e.type === "earn" ? `+${e.xp}` : e.xp < 0 ? `+${-e.xp} back` : `−${e.xp}`;
+          return `<li>${rm}<strong>${esc(amount)}</strong> ${esc(e.what)}</li>`;
+        })
+        .join("")}</ul>`;
+    } else html += `<p class="empty">No experience recorded yet.</p>`;
+    return html + `</section>`;
+  }
+
+  function renderSheet(c) {
+    let html = `<div class="sheet-title"><h1>${esc(c.game)}</h1></div>`;
+    if (c.stage === "build") {
+      html += `<p class="hint no-print"><strong>Build your character:</strong> type a name and concept, click dots to spend points, and use the <strong>+ Add</strong> boxes for Backgrounds, Gifts, Merits and Flaws. The box below keeps count. When everything is spent, click <strong>Finish character</strong>.</p>`;
+      html += renderBudget(c);
+    } else if (c.stage === "play") {
+      html += `<p class="hint no-print"><strong>Experience mode:</strong> clicking a dot up spends experience points (see the Experience box at the bottom). Tick "Fix mistakes without spending XP" to edit freely.</p>`;
+    } else {
+      html += `<p class="hint no-print">Click any dot to change a rating (click the last filled dot to lower it). Click a name below to type over it. Use the <strong>+ Add</strong> boxes to add Gifts, Backgrounds, Merits, Flaws or your own entries.</p>`;
+    }
+
+    html += `<div class="header-grid">`;
+    c.header.forEach(([label, value, choices], i) => {
+      const list = choices ? ` list="hdr-list-${i}"` : "";
+      const ph = !value && (label === "Name" || label === "Concept") && c.stage === "build" ? ` placeholder="type here"` : "";
+      html += `<label class="field"><span class="label">${esc(label)}</span><input class="value" data-header="${i}" value="${esc(value)}"${list}${ph}>`;
+      if (choices) html += `<datalist id="hdr-list-${i}">${choices.map((o) => `<option value="${esc(o)}">`).join("")}</datalist>`;
+      html += `</label>`;
+    });
+    html += `</div>`;
+
+    c.sections.forEach((s, si) => {
+      const cls = s.columns.length === 1 ? "cols one" : s.columns.length === 2 ? "cols two" : "cols";
+      html += `<section><h2>${esc(s.title)}</h2><div class="${cls}">${s.columns.map((col, ci) => renderColumn(col, si, ci)).join("")}</div></section>`;
+    });
+
+    html += `<section class="split">`;
+    if (c.table) {
+      // Short headings keep wide form tables (up to 7 traits) inside the page.
+      const ABBR = { Strength: "Str", Dexterity: "Dex", Stamina: "Sta", Charisma: "Cha", Manipulation: "Man", Appearance: "App", Perception: "Per" };
+      html += `<div><h2>${esc(c.table.title)}</h2><table class="forms"><thead><tr>${c.table.columns.map((x) => `<th title="${esc(x)}">${esc(ABBR[x] || x)}</th>`).join("")}</tr></thead><tbody>`;
+      for (const row of c.table.rows) {
+        html += `<tr>${c.table.columns.map((x) => `<td>${esc(row[x])}</td>`).join("")}</tr>`;
+      }
+      html += `</tbody></table></div>`;
+    }
+    if (c.health) {
+      html += `<div><h2>Health</h2><table class="health">`;
+      for (const [lvl, pen] of c.health) html += `<tr><td>${esc(lvl)}</td><td>${esc(pen)}</td><td><span class="box"></span></td></tr>`;
+      html += `</table></div>`;
+    }
+    html += `</section>`;
+
+    html += `<section><h2>Notes</h2>`;
+    for (const e of c.extras || []) html += `<p><strong>${esc(e.title)}:</strong> ${esc(e.text)}</p>`;
+    if (c.freebies) {
+      const label = c.mode === "pc" ? "Freebie points" : "Freebie points when generated";
+      html += `<p><strong>${label} (${esc(c.freebies.total)}):</strong> ${esc(c.freebies.spent.join(", ") || "none")}</p>`;
+    }
+    for (const n of c.notes || []) html += `<p>${esc(n)}</p>`;
+    if (c.sources && c.sources.length) html += `<p><strong>Supplements used:</strong> ${esc(c.sources.join("; "))}</p>`;
+    if (c.edited && c.mode !== "pc") html += `<p><em>Edited by hand after generating.</em></p>`;
+    html += `</section>`;
+
+    if (c.xp && c.stage === "play") html += renderXp(c);
+    if (c.stage === "play" && c.mode === "pc" && !c.xp.log.some((e) => e.type === "spend")) {
+      html += `<p class="no-print"><button data-action="unfinish">Back to character creation</button></p>`;
+    }
+    if (!c.stage) html += `<p class="no-print"><button data-action="track-xp">Track experience points for this character</button></p>`;
+    return html;
+  }
+
+  // ---------- page wiring ----------
+
+  function init() {
+    const gameSel = document.getElementById("game");
+    const modeSel = document.getElementById("mode");
+    const optsBox = document.getElementById("options");
+    const sheet = document.getElementById("sheet");
+    const genBtn = document.getElementById("generate");
+    const fileInput = document.getElementById("open-file");
+    let character = null;
+
+    games.forEach((g, i) => gameSel.add(new Option(g.label, String(i))));
+    // index.html?game=bastet opens one game; &mode=player opens the player build.
+    const params = new URLSearchParams(location.search);
+    const wantedIndex = games.findIndex((g) => g.id === params.get("game"));
+    if (wantedIndex >= 0) gameSel.value = String(wantedIndex);
+    if (/^(pc|player)$/i.test(params.get("mode") || "")) modeSel.value = "pc";
+
+    const currentGame = () => games[Number(gameSel.value)];
+    const isPc = () => modeSel.value === "pc";
+
+    function buildOptions() {
+      optsBox.innerHTML = "";
+      for (const o of currentGame().options) {
+        if (isPc() && o.id === "meritsFlaws") continue; // players pick their own
+        const label = document.createElement("label");
+        label.textContent = o.label + " ";
+        let input;
+        if (o.type === "number") {
+          input = document.createElement("input");
+          input.type = "number";
+          input.min = o.min;
+          input.max = o.max;
+          input.value = o.default;
+          input.className = "num";
+        } else {
+          input = document.createElement("select");
+          if (o.random !== false) input.add(new Option("Random", ""));
+          o.choices.forEach((ch) => input.add(new Option(String(ch), String(ch))));
+          if (o.default !== undefined) input.value = String(o.default);
+        }
+        input.id = "opt-" + o.id;
+        label.appendChild(input);
+        optsBox.appendChild(label);
+      }
+      genBtn.textContent = isPc() ? "Start new character" : "Generate";
+    }
+
+    function save() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ game: currentGame().id, character }));
+      } catch (e) {
+        /* private window or storage full: the sheet still works */
+      }
+    }
+
+    function draw() {
+      if (character.stage === "build") WOD.fera.budget(character);
+      sheet.innerHTML = renderSheet(character);
+      document.title = `${character.name || "New character"} — ${currentGame().label}`;
+      save();
+    }
+
+    function changed() {
+      character.edited = true;
+      const g = currentGame();
+      if (g.recompute) g.recompute(character);
+      draw();
+    }
+
+    function generate(ask) {
+      if (ask && character && character.edited && !confirm("Replace this character? Your changes will be lost (use Save character first to keep it).")) return false;
+      const g = currentGame();
+      const opts = {};
+      for (const o of g.options) {
+        const el = document.getElementById("opt-" + o.id);
+        const v = el ? el.value : o.default;
+        opts[o.id] = o.type === "number" ? Math.max(o.min, Math.min(o.max, Number(v) || 0)) : v;
+      }
+      if (isPc()) {
+        character = g.generate({ ...opts, freebies: 0, meritsFlaws: "No" });
+        WOD.fera.blank(character, opts.freebies);
+      } else {
+        character = g.generate(opts);
+        character.mode = "npc";
+      }
+      character.gameId = g.id;
+      draw();
+      return true;
+    }
+
+    // Load a saved character (from the browser or a file). Returns false if it isn't one.
+    function load(data) {
+      const i = data && data.character && Array.isArray(data.character.sections) ? games.findIndex((g) => g.id === data.game) : -1;
+      if (i < 0) return false;
+      gameSel.value = String(i);
+      modeSel.value = data.character.mode === "pc" ? "pc" : "npc";
+      buildOptions();
+      character = data.character;
+      character.gameId = data.game;
+      draw();
+      return true;
+    }
+
+    const colAt = (path) => {
+      const [si, ci] = path.split(".").map(Number);
+      return character.sections[si].columns[ci];
+    };
+    const charging = () => character.stage === "play" && !character.freeEdit;
+
+    // Experience for a rating change; returns false if the player backs out.
+    function payXp(si, ci, name, from, to) {
+      if (!charging()) return true;
+      const F = WOD.fera;
+      const kind = F.traitKind(character, si, ci);
+      if (!kind) return true;
+      const s = character.sections[si];
+      const col = s.columns[ci];
+      const key = traitKey(s, col, name);
+      const cost = F.xpForChange(kind, from, to, character.xpBase[key] ?? 0);
+      if (!cost) return true;
+      const left = xpTotals(character).left;
+      if (cost > left && !confirm(`That costs ${cost} XP, but there are only ${left} unspent. Buy it anyway?`)) return false;
+      const label = col.title === name || ["Rage", "Gnosis", "Willpower"].includes(col.title) ? col.title : name;
+      character.xp.log.push({ type: "spend", xp: cost, what: `${label} ${from} → ${to}${cost < 0 ? " (undone)" : ""}`, key });
+      return true;
+    }
+
+    function payGift(col, label, adding) {
+      if (!charging()) return true;
+      if (adding) {
+        let cost;
+        const group = (col.listOptions || []).find((g) => g.options.includes(label));
+        if (group) cost = WOD.fera.giftXp(label, group.own);
+        else {
+          const typed = prompt("How many experience points does this Gift cost? (Level × 3 for your own Gift lists, Level × 5 for others)", "3");
+          if (typed === null) return false;
+          cost = Math.max(0, Number(typed) || 0);
+        }
+        const left = xpTotals(character).left;
+        if (cost > left && !confirm(`That Gift costs ${cost} XP, but there are only ${left} unspent. Take it anyway?`)) return false;
+        if (cost) character.xp.log.push({ type: "spend", xp: cost, what: `Gift: ${label}`, key: "gift|" + label });
+      } else if (!character.xpBase.gifts.includes(label)) {
+        const bought = character.xp.log.filter((e) => e.key === "gift|" + label).reduce((s, e) => s + e.xp, 0);
+        if (bought > 0) character.xp.log.push({ type: "spend", xp: -bought, what: `Gift removed: ${label}`, key: "gift|" + label });
+      }
+      return true;
+    }
+
+    sheet.addEventListener("click", (e) => {
+      const dot = e.target.closest("[data-dot]");
+      if (dot) {
+        const [si, ci, ii, n] = dot.dataset.dot.split(".").map(Number);
+        const item = character.sections[si].columns[ci].items[ii];
+        const to = item[1] === n ? n - 1 : n;
+        if (!payXp(si, ci, item[0], item[1], to)) return;
+        item[1] = to;
+        changed();
+        return;
+      }
+      const rm = e.target.closest("[data-remove]");
+      if (rm) {
+        const [si, ci, ii] = rm.dataset.remove.split(".").map(Number);
+        const col = colAt(`${si}.${ci}`);
+        if (col.items) {
+          if (!payXp(si, ci, col.items[ii][0], col.items[ii][1], 0)) return;
+          col.items.splice(ii, 1);
+        } else {
+          if (col.title === "Gifts" && !payGift(col, col.list[ii], false)) return;
+          col.list.splice(ii, 1);
+        }
+        changed();
+        return;
+      }
+      const xpRm = e.target.closest("[data-xp-remove]");
+      if (xpRm) {
+        const entry = character.xp.log[Number(xpRm.dataset.xpRemove)];
+        if (confirm(`Remove "+${entry.xp} ${entry.what}" from the experience record?`)) {
+          character.xp.log.splice(Number(xpRm.dataset.xpRemove), 1);
+          draw();
+        }
+        return;
+      }
+      const act = e.target.closest("[data-action]");
+      if (!act) return;
+      const action = act.dataset.action;
+      if (action === "fill") {
+        WOD.fera.fillRest(character);
+        changed();
+      } else if (action === "finish") {
+        const r = WOD.fera.budget(character);
+        const problems = [];
+        for (const row of r.rows) for (const p of row.parts) if (p.have < p.of) problems.push(`${row.title}${row.parts.length > 1 ? " (" + p.name + ")" : ""}: ${p.of - p.have} left`);
+        if (r.used < r.total) problems.push(`${r.total - r.used} freebie points left`);
+        if (r.used > r.total) problems.push(`${r.used - r.total} freebie points too many`);
+        problems.push(...r.warnings);
+        if (!character.name) problems.push("no name yet");
+        if (problems.length && !confirm(`Finish anyway?\n\n• ${problems.join("\n• ")}`)) return;
+        character.freebies = { total: String(r.total), spent: r.freebieUse.map((x) => `${x.what} (${WOD.fera.pts(x.cost)})`) };
+        startXp(character);
+        draw();
+      } else if (action === "unfinish") {
+        character.stage = "build";
+        character.freebies = null;
+        draw();
+      } else if (action === "track-xp") {
+        startXp(character);
+        draw();
+      } else if (action === "xp-add") {
+        const amount = Math.floor(Number(document.getElementById("xp-amount").value));
+        if (!(amount > 0)) {
+          alert("Type how many experience points to add first.");
+          return;
+        }
+        const note = document.getElementById("xp-note").value.trim() || "Experience";
+        character.xp.log.push({ type: "earn", xp: amount, what: note, date: new Date().toISOString().slice(0, 10) });
+        draw();
+      }
+    });
+
+    sheet.addEventListener("change", (e) => {
+      const free = e.target.closest('[data-action="free-edit"]');
+      if (free) {
+        character.freeEdit = free.checked;
+        draw();
+        return;
+      }
+      const sel = e.target.closest("[data-add]");
+      if (!sel || !sel.value) return;
+      const [si, ci] = sel.dataset.add.split(".").map(Number);
+      const col = colAt(sel.dataset.add);
+      let value = sel.value;
+      if (value === "__custom") {
+        value = (prompt(col.customPrompt || "Type the name:") || "").trim();
+        if (!value) { sel.value = ""; return; }
+      }
+      if (col.items) {
+        if (!payXp(si, ci, value, 0, 1)) { sel.value = ""; return; }
+        col.items.push([value, 1, col.addMax || 5]);
+      } else {
+        if (col.title === "Gifts" && !payGift(col, value, true)) { sel.value = ""; return; }
+        col.list.push(value);
+      }
+      changed();
+    });
+
+    sheet.addEventListener("input", (e) => {
+      const f = e.target.closest("[data-header]");
+      if (!f) return;
+      character.header[Number(f.dataset.header)][1] = f.value;
+      if (f.dataset.header === "0") {
+        character.name = f.value;
+        document.title = `${f.value || "New character"} — ${currentGame().label}`;
+      }
+      character.edited = true;
+      save();
+    });
+
+    gameSel.addEventListener("change", () => {
+      buildOptions();
+      if (!generate(true)) {
+        gameSel.value = String(Math.max(0, games.findIndex((g) => g.id === character.gameId)));
+        buildOptions();
+      }
+    });
+    modeSel.addEventListener("change", () => {
+      buildOptions();
+      if (!generate(true)) {
+        modeSel.value = character.mode === "pc" ? "pc" : "npc";
+        buildOptions();
+      }
+    });
+    genBtn.addEventListener("click", () => generate(true));
+    document.getElementById("print").addEventListener("click", () => window.print());
+
+    document.getElementById("save").addEventListener("click", () => {
+      const data = JSON.stringify({ app: "wod-character-generator", version: 1, game: currentGame().id, character }, null, 1);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+      a.download = `${(character.name || "character").replace(/[^\w\- ]+/g, "").trim() || "character"} (${currentGame().id}).json`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    });
+    document.getElementById("open").addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      fileInput.value = "";
+      if (!file) return;
+      if (character && character.edited && !confirm("Open this file and replace the character on screen?")) return;
+      file.text().then((text) => {
+        let data = null;
+        try { data = JSON.parse(text); } catch (err) { /* handled below */ }
+        if (!load(data)) alert("That file isn't a saved character from this generator.");
+      });
+    });
+
+    // Bring back the last character (handy if the page was closed by accident).
+    let restored = false;
+    if (!params.get("game") && !params.get("mode")) {
+      try {
+        restored = load(JSON.parse(localStorage.getItem(SAVE_KEY) || "null"));
+      } catch (e) {
+        restored = false;
+      }
+    }
+    if (!restored) {
+      buildOptions();
+      generate(false);
+    }
+  }
+
+  return { random, registerGame, renderSheet, init, games, startXp, xpTotals };
+})();
+
+</script>
+  <script>
+/*
+  Shared building blocks for the shapeshifter games (Werewolf, Bastet, Mokole...).
+  Each game file keeps its own data and decides how to combine these steps.
+*/
+WOD.fera = (function () {
+  const R = WOD.random;
+
+  const ATTRIBUTES = {
+    Physical: ["Strength", "Dexterity", "Stamina"],
+    Social: ["Charisma", "Manipulation", "Appearance"],
+    Mental: ["Perception", "Intelligence", "Wits"],
+  };
+  const ABILITIES = {
+    Talents: ["Alertness", "Athletics", "Brawl", "Dodge", "Empathy", "Expression", "Intimidation", "Primal-Urge", "Streetwise", "Subterfuge"],
+    Skills: ["Animal Ken", "Crafts", "Drive", "Etiquette", "Firearms", "Leadership", "Melee", "Performance", "Stealth", "Survival"],
+    Knowledges: ["Computer", "Enigmas", "Investigation", "Law", "Linguistics", "Medicine", "Occult", "Politics", "Rituals", "Science"],
+  };
+  const ARCHETYPES = ["Architect", "Autocrat", "Bon Vivant", "Bravo", "Caregiver", "Celebrant", "Competitor", "Conformist", "Conniver", "Curmudgeon", "Deviant", "Director", "Fanatic", "Gallant", "Judge", "Loner", "Martyr", "Masochist", "Monster", "Penitent", "Perfectionist", "Rebel", "Rogue", "Survivor", "Thrill-Seeker", "Traditionalist", "Visionary"];
+  const HEALTH = [["Bruised", ""], ["Hurt", "-1"], ["Injured", "-1"], ["Wounded", "-2"], ["Mauled", "-2"], ["Crippled", "-5"], ["Incapacitated", ""]];
+  const COSTS = { Attribute: 5, Ability: 2, Background: 1, Gift: 7, Rage: 1, Gnosis: 2, Willpower: 1 };
+  const PRIORITY = ["Primary", "Secondary", "Tertiary"];
+
+  const pts = (n) => `${n} pt${n === 1 ? "" : "s"}`;
+
+  // ---- Gifts. A gift set is { core: { level: [names] }, extra: { book: { level: [names] } } }.
+  const G = (core, extra = {}) => ({ core, extra });
+
+  function giftEntries(set, coreOnly) {
+    const out = [];
+    if (!set) return out;
+    for (const [lvl, names] of Object.entries(set.core || {})) for (const n of names) out.push({ name: n, level: Number(lvl), book: "Core" });
+    if (!coreOnly) {
+      for (const [book, byLevel] of Object.entries(set.extra || {})) {
+        for (const [lvl, names] of Object.entries(byLevel)) for (const n of names) out.push({ name: n, level: Number(lvl), book });
+      }
+    }
+    return out;
+  }
+
+  const giftLabel = (g) => `${g.name} (${g.source}, L${g.level}${g.book === "Core" ? "" : ", " + g.book})`;
+  const mfLabel = ([name, cost, book]) => `${name} (${pts(cost)}${book === "Core" ? "" : ", " + book})`;
+
+  // sources: [[giftSet, sourceLabel], ...]; returns a helper to draw Gifts without repeats.
+  function giftPicker(sources, coreOnly) {
+    const gifts = [];
+    const available = (level) =>
+      sources.flatMap(([set, source]) => giftEntries(set, coreOnly).filter((g) => g.level === level).map((g) => ({ ...g, source })))
+        .filter((g) => !gifts.some((x) => x.name === g.name));
+    return {
+      gifts,
+      available,
+      // Take one Gift of `level` from one specific source (or any source if null).
+      take(level, onlySource) {
+        const pool = available(level).filter((g) => !onlySource || g.source === onlySource);
+        if (!pool.length) return null;
+        const g = R.pick(pool);
+        gifts.push(g);
+        return g;
+      },
+    };
+  }
+
+  // "+ Add Gift" choices: the character's own sources first, then everything else.
+  function giftOptions(own, others) {
+    const groups = [];
+    const seen = new Set();
+    const add = (title, source, set, isOwn) => {
+      const options = giftEntries(set, false)
+        .sort((x, y) => x.level - y.level || x.name.localeCompare(y.name))
+        .map((g) => giftLabel({ ...g, source }))
+        .filter((l) => !seen.has(l) && seen.add(l));
+      if (options.length) groups.push({ group: title, options, own: isOwn, source });
+    };
+    for (const [title, source, set] of own) add(title, source, set, true);
+    for (const [title, source, set] of others) add(title, source, set, false);
+    return groups;
+  }
+
+  // ---- Gender and names. names = { female: [...], male: [...], last: [...] }
+  const pickGender = (opts) => (opts.gender === "Female" || opts.gender === "Male" ? opts.gender : R.pick(["Female", "Male"]));
+  const firstName = (names, gender) => R.pick(names[gender.toLowerCase()] || [...(names.female || []), ...(names.male || [])]);
+
+  // ---- Core traits.
+  function attributes() {
+    const attrs = {};
+    const priority = {};
+    R.shuffle(Object.keys(ATTRIBUTES)).forEach((cat, i) => {
+      priority[cat] = PRIORITY[i];
+      ATTRIBUTES[cat].forEach((n) => (attrs[n] = 1));
+      R.distribute(attrs, ATTRIBUTES[cat], [7, 5, 3][i], 5);
+    });
+    return { attrs, priority };
+  }
+
+  function abilities(avoid = []) {
+    const abil = {};
+    const priority = {};
+    const ok = (n) => !avoid.includes(n);
+    // Pick an order where every category has room for its points (max 3 each);
+    // a wolf- or reptile-born character can't put 13 points into four Knowledges.
+    const room = (cat) => ABILITIES[cat].filter(ok).length * 3;
+    let order;
+    for (let tries = 0; tries < 50; tries++) {
+      order = R.shuffle(Object.keys(ABILITIES));
+      if (order.every((cat, i) => room(cat) >= [13, 9, 5][i])) break;
+    }
+    order.forEach((cat, i) => {
+      const p = [13, 9, 5][i];
+      priority[cat] = PRIORITY[i];
+      ABILITIES[cat].forEach((n) => (abil[n] = 0));
+      const allowed = ABILITIES[cat].filter(ok);
+      // Focus points on a handful of abilities so characters feel specialized.
+      const size = Math.min(allowed.length, Math.max(Math.ceil(p / 3), Math.ceil(p / 2) + 1));
+      R.distribute(abil, R.shuffle(allowed).slice(0, size), p, 3);
+    });
+    return { abil, priority, ok };
+  }
+
+  function backgrounds(list, notAllowed = [], mins = {}) {
+    const bg = {};
+    list.forEach((n) => (bg[n] = 0));
+    let points = 5;
+    for (const [n, min] of Object.entries(mins)) {
+      bg[n] = min;
+      points -= min;
+    }
+    const allowed = list.filter((n) => !notAllowed.includes(n));
+    const focus = R.shuffle(allowed).slice(0, R.int(2, 3));
+    Object.keys(mins).forEach((n) => focus.includes(n) || focus.push(n));
+    R.distribute(bg, focus, points, 5);
+    return { bg, allowed };
+  }
+
+  function renown(names, need) {
+    const r = {};
+    names.forEach((n) => (r[n] = 0));
+    if (typeof need === "number") R.distribute(r, names, need, 10);
+    else Object.assign(r, need);
+    return r;
+  }
+
+  // Random Merit and/or Flaw. Flaws add freebie points (max 4 at random), Merits cost them.
+  function meritsFlaws(data, freebies, rollable, enabled) {
+    const merits = [];
+    const flaws = [];
+    if (enabled) {
+      if (R.chance(0.5)) {
+        const f = R.pick(data.flaws.filter((x) => typeof x[1] === "number" && x[1] <= 4 && rollable(x)));
+        if (f) { flaws.push(f); freebies += f[1]; }
+      }
+      if (R.chance(0.5)) {
+        const m = R.pick(data.merits.filter((x) => typeof x[1] === "number" && x[1] <= Math.min(freebies, 4) && rollable(x)));
+        if (m) { merits.push(m); freebies -= m[1]; }
+      }
+    }
+    return { merits, flaws, freebies };
+  }
+
+  // Spend freebie points at random. s = { attrs, abil, abilityOk, bg, bgAllowed, adv, picker }
+  function spendFreebies(s, points) {
+    let left = points;
+    const spent = [];
+    const canBuy = {
+      Attribute: () => Object.keys(s.attrs).filter((k) => s.attrs[k] < 5),
+      Ability: () => Object.keys(s.abil).filter((k) => s.abil[k] < 5 && s.abilityOk(k)),
+      Background: () => s.bgAllowed.filter((k) => s.bg[k] < 5),
+      Gift: () => s.picker.available(1),
+      Rage: () => ("Rage" in s.adv && s.adv.Rage < 10 ? ["Rage"] : []),
+      Gnosis: () => (s.adv.Gnosis < 10 ? ["Gnosis"] : []),
+      Willpower: () => (s.adv.Willpower < 10 ? ["Willpower"] : []),
+    };
+    const baseWeights = { Ability: 4, Background: 3, Attribute: 2, Rage: 2, Gnosis: 2, Willpower: 2, Gift: 1 };
+    while (left > 0) {
+      const weights = {};
+      for (const [k, w] of Object.entries(baseWeights)) if (COSTS[k] <= left && canBuy[k]().length) weights[k] = w;
+      if (!Object.keys(weights).length) break;
+      const kind = R.weighted(weights);
+      let what;
+      if (kind === "Attribute") {
+        what = R.pick(canBuy.Attribute());
+        s.attrs[what]++;
+      } else if (kind === "Ability") {
+        const owned = canBuy.Ability().filter((k) => s.abil[k] > 0);
+        what = R.pick(owned.length && R.chance(0.7) ? owned : canBuy.Ability());
+        s.abil[what]++;
+      } else if (kind === "Background") {
+        const owned = canBuy.Background().filter((k) => s.bg[k] > 0);
+        what = R.pick(owned.length && R.chance(0.7) ? owned : canBuy.Background());
+        s.bg[what]++;
+      } else if (kind === "Gift") {
+        const g = R.pick(canBuy.Gift());
+        s.picker.gifts.push(g);
+        what = `Gift: ${g.name}`;
+      } else {
+        s.adv[kind]++;
+        what = kind;
+      }
+      left -= COSTS[kind];
+      spent.push({ what, cost: COSTS[kind] });
+    }
+    // Combine repeats, e.g. "Contacts +2 (2 pts)".
+    const rows = [];
+    for (const x of spent) {
+      const row = rows.find((r) => r.what === x.what);
+      if (row) { row.n++; row.cost += x.cost; } else rows.push({ ...x, n: 1 });
+    }
+    return {
+      left,
+      spent: rows.map((x) => (x.what.startsWith("Gift: ") ? `${x.what} (${pts(x.cost)})` : `${x.what} +${x.n} (${pts(x.cost)})`)),
+    };
+  }
+
+  // forms: [{ name, mods: { Trait: n }, zero: [traits set to 0], diff }]
+  function formRows(forms, attrs, cols) {
+    return forms.map((f) => {
+      const row = { Form: f.name };
+      cols.forEach((s) => {
+        let v = (attrs[s] || 0) + ((f.mods || {})[s] || 0);
+        if ((f.zero || []).includes(s)) v = 0;
+        row[s] = Math.max(0, v);
+      });
+      if (f.diff !== undefined) row["Diff."] = f.diff;
+      return row;
+    });
+  }
+
+  function attrsFromSheet(c) {
+    const attrs = {};
+    const sec = c.sections.find((s) => s.title === "Attributes");
+    for (const col of sec.columns) for (const [n, v] of col.items) attrs[n] = v;
+    return attrs;
+  }
+
+  function groupByCost(list, own) {
+    const groups = {};
+    for (const mf of list) {
+      const key = mf[3] ? `${mf[3]} only` : pts(mf[1]);
+      (groups[key] = groups[key] || []).push(mfLabel(mf));
+    }
+    return Object.entries(groups)
+      .sort(([a], [b]) => (a.endsWith("only") - b.endsWith("only")) || (b.startsWith(own) - a.startsWith(own)) || a.localeCompare(b, undefined, { numeric: true }))
+      .map(([group, options]) => ({ group, options }));
+  }
+
+  // Assemble the standard sheet. p holds everything the game decided.
+  function sheet(p) {
+    const toItems = (obj, keys, max) => keys.map((k) => [k, obj[k], max]);
+    let freebieText = String(p.freebieTotal);
+    const flawPts = p.flaws.reduce((s, f) => s + f[1], 0);
+    const meritPts = p.merits.reduce((s, m) => s + m[1], 0);
+    if (flawPts) freebieText += ` + ${pts(flawPts)} from Flaws`;
+    if (meritPts) freebieText += ` − ${pts(meritPts)} on Merits`;
+    const notes = [...(p.notes || [])];
+    if (p.leftover > 0) notes.push(`${pts(p.leftover)} of freebie points left over: everything that could be raised is already at maximum.`);
+    const used = new Set([...p.gifts.map((g) => g.book), ...p.merits.map((m) => m[2]), ...p.flaws.map((f) => f[2])]);
+    used.delete("Core");
+
+    const sections = [
+      { title: "Attributes", columns: Object.keys(ATTRIBUTES).map((cat) => ({ title: `${cat} (${p.attrPriority[cat]})`, items: toItems(p.attrs, ATTRIBUTES[cat], 5) })) },
+      {
+        title: "Abilities",
+        columns: Object.keys(ABILITIES).map((cat) => ({
+          title: `${cat} (${p.abilPriority[cat]})`,
+          items: [...toItems(p.abil, ABILITIES[cat], 5), ...Object.entries((p.extraAbil || {})[cat] || {}).map(([n, v]) => [n, v, 5])],
+          allowCustom: true,
+          addLabel: `Add ${cat.replace(/s$/, "").toLowerCase()}`,
+          customPrompt: `Name of the new ${cat.replace(/s$/, "").toLowerCase()}:`,
+        })),
+      },
+      {
+        title: "Advantages",
+        columns: [
+          { title: "Backgrounds", items: p.bgList.filter((n) => p.bg[n] > 0).map((n) => [n, p.bg[n], 5]), removable: true, addOptions: p.bgList, allowCustom: true, addLabel: "Add background", customPrompt: "Name of the background:" },
+          { title: "Gifts", list: p.gifts.sort((x, y) => x.level - y.level).map(giftLabel), listOptions: p.giftOptions, allowCustom: true, addLabel: "Add Gift", customPrompt: "Gift name, and its source and level if you like:" },
+          { title: `Renown — Rank ${p.rank}`, items: toItems(p.renown, Object.keys(p.renown), 10) },
+        ],
+      },
+    ];
+    if (p.extraColumns) sections.push(...p.extraColumns);
+    sections.push(
+      {
+        title: "Merits & Flaws",
+        columns: [
+          { title: "Merits", list: p.merits.map(mfLabel), listOptions: groupByCost(p.mfData.merits, p.mfOwn), allowCustom: true, addLabel: "Add Merit", customPrompt: "Merit name and cost, e.g. Iron Will (5 pts):" },
+          { title: "Flaws", list: p.flaws.map(mfLabel), listOptions: groupByCost(p.mfData.flaws, p.mfOwn), allowCustom: true, addLabel: "Add Flaw", customPrompt: "Flaw name and value, e.g. Phobia (1 pt):" },
+        ],
+      },
+      {
+        title: Object.keys(p.adv).join(", ").replace(/, ([^,]*)$/, " & $1"),
+        columns: Object.keys(p.adv).map((k) => ({ title: k, items: [["Permanent", p.adv[k], 10]], boxes: 10 })),
+      }
+    );
+
+    // What a player-built character starts from (see blank() and budget() below).
+    const b = p.build || {};
+    const build = {
+      rank: p.rank,
+      avoid: b.avoid || [],
+      noBg: b.noBg || [],
+      bgStart: b.bgStart || {},
+      bgFree: 5 - Object.values(b.bgMin || {}).reduce((s, x) => s + x, 0),
+      freeAbil: b.freeAbil || {},
+      keepGifts: b.keepGifts || [],
+      giftHint: b.giftHint || "",
+      maxAppearance: b.maxAppearance || 0,
+      ownSources: p.giftOptions.filter((g) => g.own).map((g) => g.source),
+    };
+
+    return {
+      game: p.game,
+      name: p.name,
+      header: p.header,
+      sections,
+      table: { title: "Forms", columns: p.formColumns, rows: p.formRows },
+      health: HEALTH,
+      extras: p.extras || [],
+      freebies: { total: freebieText, spent: p.spent },
+      notes,
+      sources: [...used].map((k) => `${k} = ${p.books[k] || k}`),
+      build,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Player characters. A game makes a character with 0 freebies and no Merits or
+  // Flaws; blank() then clears the random choices so the player picks everything,
+  // and budget() counts what they have spent against the creation rules.
+  const ADV = ["Rage", "Gnosis", "Willpower"];
+  const secBy = (c, title) => c.sections.find((s) => s.title === title);
+  const colBy = (c, title) => c.sections.flatMap((s) => s.columns).find((col) => col.title === title);
+  const advCols = (c) => c.sections.flatMap((s) => s.columns).filter((col) => ADV.includes(col.title) && col.items);
+  const costOf = (label) => Number((String(label).match(/\((\d+) pts?\b/) || [0, 0])[1]);
+  const giftLevel = (label) => Number((String(label).match(/, L(\d)/) || [0, 1])[1]);
+  const giftSource = (label) => (String(label).match(/\(([^,()]+), L\d/) || [0, ""])[1];
+
+  function blank(c, freebies) {
+    const b = c.build;
+    c.mode = "pc";
+    c.stage = "build";
+    b.freebies = freebies;
+    b.adv = Object.fromEntries(advCols(c).map((col) => [col.title, col.items[0][1]]));
+    for (const col of secBy(c, "Attributes").columns) col.items.forEach((it) => (it[1] = 1));
+    for (const col of secBy(c, "Abilities").columns) col.items.forEach((it) => (it[1] = b.freeAbil[it[0]] || 0));
+    colBy(c, "Backgrounds").items = Object.entries(b.bgStart).filter(([, v]) => v > 0).map(([n, v]) => [n, v, 5]);
+    const gifts = colBy(c, "Gifts");
+    const kept = gifts.list.filter((l) => b.keepGifts.some((n) => l.startsWith(n + " (")));
+    b.giftAllowance = gifts.list.length - kept.length;
+    gifts.list = kept;
+    colBy(c, "Merits").list = [];
+    colBy(c, "Flaws").list = [];
+    for (const h of c.header) {
+      if (["Name", "Concept"].includes(h[0])) h[1] = "";
+      if (["Nature", "Demeanor"].includes(h[0])) { h[1] = ""; h[2] = ARCHETYPES; }
+    }
+    c.name = "";
+    c.freebies = null;
+    c.notes = c.notes.filter((n) => !n.includes("left over"));
+    c.sources = [];
+    c.edited = false;
+    budget(c);
+    return c;
+  }
+
+  // Match the categories to the priority pools: the most-spent category gets the biggest pool.
+  function fitPools(spent, pools) {
+    const order = spent.map((s, i) => i).sort((x, y) => spent[y] - spent[x] || x - y);
+    const pool = [];
+    order.forEach((ci, rank) => (pool[ci] = { size: pools[rank], priority: PRIORITY[rank] }));
+    const over = spent.reduce((s, x, i) => s + Math.max(0, x - pool[i].size), 0);
+    return { pool, over };
+  }
+
+  // Counts points against the creation rules. Returns rows for the points box and
+  // updates the Primary/Secondary/Tertiary labels to match how points were spent.
+  function budget(c) {
+    const b = c.build;
+    const rows = [];
+    const warnings = [];
+    const freebieUse = [];
+    const charge = (what, dots, each) => dots > 0 && freebieUse.push({ what: `${what} +${dots}`, cost: dots * each });
+
+    const relabel = (col, pr) => (col.title = `${col.title.split(" (")[0]} (${pr})`);
+
+    // Attributes: everything starts at 1; 7/5/3 dots.
+    const aCols = secBy(c, "Attributes").columns;
+    const aSpent = aCols.map((col) => col.items.reduce((s, [, v]) => s + Math.max(0, v - 1), 0));
+    const aFit = fitPools(aSpent, [7, 5, 3]);
+    aCols.forEach((col, i) => relabel(col, aFit.pool[i].priority));
+    rows.push({ title: "Attributes", parts: aCols.map((col, i) => ({ name: col.title.split(" (")[0], have: aSpent[i], of: aFit.pool[i].size })) });
+    charge("Attributes", aFit.over, COSTS.Attribute);
+    if (b.maxAppearance) {
+      const app = aCols.flatMap((col) => col.items).find((it) => it[0] === "Appearance");
+      if (app && app[1] > b.maxAppearance) warnings.push(`This breed can't start with Appearance above ${b.maxAppearance}.`);
+    }
+
+    // Abilities: 13/9/5, no higher than 3 before freebies.
+    const abCols = secBy(c, "Abilities").columns;
+    let above3 = 0;
+    const abSpent = abCols.map((col) =>
+      col.items.reduce((s, [n, v]) => {
+        const start = b.freeAbil[n] || 0;
+        const cap = Math.max(3, start);
+        above3 += Math.max(0, v - cap);
+        if (v > start && b.avoid.includes(n)) warnings.push(`${n}: this breed can't start with it (wolf/animal-born).`);
+        return s + Math.max(0, Math.min(v, cap) - start);
+      }, 0)
+    );
+    const abFit = fitPools(abSpent, [13, 9, 5]);
+    abCols.forEach((col, i) => relabel(col, abFit.pool[i].priority));
+    rows.push({ title: "Abilities", parts: abCols.map((col, i) => ({ name: col.title.split(" (")[0], have: abSpent[i], of: abFit.pool[i].size })) });
+    charge("Abilities", abFit.over + above3, COSTS.Ability);
+    if (above3) warnings.push(`Abilities above 3 are paid with freebie points (${above3} dot${above3 === 1 ? "" : "s"}).`);
+
+    // Backgrounds: 5 dots (some groups start with extra dots already filled in).
+    const bgItems = colBy(c, "Backgrounds").items;
+    const bgSpent = bgItems.reduce((s, [n, v]) => s + Math.max(0, v - (b.bgStart[n] || 0)), 0);
+    rows.push({ title: "Backgrounds", parts: [{ name: "Dots", have: bgSpent, of: b.bgFree }] });
+    charge("Backgrounds", Math.max(0, bgSpent - b.bgFree), COSTS.Background);
+    for (const [n, v] of bgItems) if (v > 0 && b.noBg.includes(n)) warnings.push(`${n}: not allowed for this character.`);
+    for (const [n, v] of Object.entries(b.bgStart)) if ((bgItems.find((it) => it[0] === n) || [0, 0])[1] < v) warnings.push(`${n} should be at least ${v}.`);
+
+    // Gifts.
+    const gifts = colBy(c, "Gifts").list;
+    const chosen = gifts.length - b.keepGifts.length;
+    rows.push({ title: "Gifts", parts: [{ name: "Chosen", have: Math.min(chosen, b.giftAllowance), of: b.giftAllowance }], hint: b.giftHint });
+    if (chosen > b.giftAllowance) freebieUse.push({ what: `Extra Gifts ×${chosen - b.giftAllowance}`, cost: (chosen - b.giftAllowance) * COSTS.Gift });
+    for (const g of gifts) {
+      if (giftLevel(g) > b.rank) warnings.push(`${g.split(" (")[0]} is Level ${giftLevel(g)}, above Rank ${b.rank}.`);
+      const src = giftSource(g);
+      if (src && b.ownSources.length && !b.ownSources.includes(src)) warnings.push(`${g.split(" (")[0]} comes from ${src}, not one of this character's own Gift lists.`);
+    }
+
+    // Rage / Gnosis / Willpower above their starting values.
+    for (const col of advCols(c)) {
+      const k = col.title;
+      const v = col.items[0][1];
+      const base = b.adv[k] ?? v;
+      if (v > base) charge(k, v - base, COSTS[k]);
+      if (v < base) warnings.push(`${k} starts at ${base}; it can't go lower at creation.`);
+    }
+
+    // Merits cost freebies; Flaws give up to 7 back.
+    const meritPts = colBy(c, "Merits").list.reduce((s, x) => s + costOf(x), 0);
+    const flawPts = colBy(c, "Flaws").list.reduce((s, x) => s + costOf(x), 0);
+    if (meritPts) freebieUse.push({ what: "Merits", cost: meritPts });
+    const flawBonus = Math.min(7, flawPts);
+    if (flawPts > 7) warnings.push(`Flaws give at most 7 freebie points (yours add up to ${flawPts}).`);
+
+    const total = b.freebies + flawBonus;
+    const used = freebieUse.reduce((s, x) => s + x.cost, 0);
+    b.result = { rows, warnings, freebieUse, total, used, flawBonus };
+    return b.result;
+  }
+
+  // "Fill the rest randomly": spends whatever creation points are left (not freebies).
+  function fillRest(c) {
+    const b = c.build;
+    const res = budget(c);
+    const spread = (items, points, cap, ok) => {
+      for (let p = 0; p < points; p++) {
+        const open = items.filter((it) => it[1] < cap && ok(it[0], it[1]));
+        if (!open.length) return;
+        const owned = open.filter((it) => it[1] > (b.freeAbil[it[0]] || 0));
+        R.pick(owned.length && R.chance(0.6) ? owned : open)[1]++;
+      }
+    };
+    secBy(c, "Attributes").columns.forEach((col, i) => {
+      const part = res.rows[0].parts[i];
+      spread(col.items, part.of - part.have, 5, (n, v) => !(b.maxAppearance && n === "Appearance" && v >= b.maxAppearance));
+    });
+    secBy(c, "Abilities").columns.forEach((col, i) => {
+      const part = res.rows[1].parts[i];
+      spread(col.items, part.of - part.have, 3, (n) => !b.avoid.includes(n));
+    });
+    const bgCol = colBy(c, "Backgrounds");
+    const bgPart = res.rows[2].parts[0];
+    for (let p = 0; p < bgPart.of - bgPart.have; p++) {
+      const owned = bgCol.items.filter((it) => it[1] < 5);
+      if (owned.length && R.chance(0.6)) { R.pick(owned)[1]++; continue; }
+      const n = R.pick(bgCol.addOptions.filter((x) => !b.noBg.includes(x) && !bgCol.items.some((it) => it[0] === x && it[1] >= 5)));
+      if (!n) break;
+      const it = bgCol.items.find((x) => x[0] === n);
+      if (it) it[1]++;
+      else bgCol.items.push([n, 1, 5]);
+    }
+    // Gifts: one Level 1 from each own list that has none yet, then one per Rank level.
+    const gCol = colBy(c, "Gifts");
+    const own = gCol.listOptions.filter((g) => g.own);
+    const has = (o) => gCol.list.some((x) => x.split(" (")[0] === o.split(" (")[0]);
+    const free = (level, src) => own.filter((g) => !src || g.source === src).flatMap((g) => g.options).filter((o) => giftLevel(o) === level && !has(o));
+    const need = () => b.giftAllowance - (gCol.list.length - b.keepGifts.length);
+    for (let lvl = 2; lvl <= b.rank && need() > 0; lvl++) {
+      if (!gCol.list.some((g) => giftLevel(g) === lvl)) { const o = R.pick(free(lvl)); if (o) gCol.list.push(o); }
+    }
+    for (const src of b.ownSources) {
+      if (need() > 0 && !gCol.list.some((g) => giftSource(g) === src)) { const o = R.pick(free(1, src)); if (o) gCol.list.push(o); }
+    }
+    while (need() > 0) { const o = R.pick(free(1)); if (!o) break; gCol.list.push(o); }
+    gCol.list.sort((x, y) => giftLevel(x) - giftLevel(y));
+    budget(c);
+  }
+
+  // ---- Experience (Werewolf Revised costs; the Changing Breeds use the same chart).
+  // Each step is priced at the rating it starts from ("current rating").
+  const XP_STEP = {
+    Attribute: (v) => v * 4,
+    Ability: (v) => (v === 0 ? 3 : v * 2),
+    Background: (v) => (v === 0 ? 3 : v * 3), // Storyteller's call; not on the Revised chart
+    Rage: (v) => v,
+    Gnosis: (v) => v * 2,
+    Willpower: (v) => v,
+  };
+
+  function traitKind(c, si, ci) {
+    const s = c.sections[si];
+    const col = s.columns[ci];
+    if (s.title === "Attributes") return "Attribute";
+    if (s.title === "Abilities") return "Ability";
+    if (col.title === "Backgrounds") return "Background";
+    if (ADV.includes(col.title)) return col.title;
+    return null; // Renown and the like change through play, not experience
+  }
+
+  // Cost of moving a rating from `from` to `to` (negative = refund). Steps below the
+  // rating the character had when experience tracking began are free.
+  function xpForChange(kind, from, to, floor) {
+    const step = XP_STEP[kind];
+    if (!step) return 0;
+    let cost = 0;
+    for (let v = Math.max(from, floor); v < to; v++) cost += step(v);
+    for (let v = Math.max(to, floor); v < from; v++) cost -= step(v);
+    return cost;
+  }
+  const giftXp = (label, own) => giftLevel(label) * (own ? 3 : 5);
+
+  // ---------------------------------------------------------------------------
+  // Data-driven game for the smaller Changing Breeds. cfg fields:
+  //   id, label, game, books, general (gift set), startGifts: ["breed","groupA","groupB","general"]
+  //   breeds: { Name: { gnosis: n | {Female, Male}, start: [L1 names], gifts: set, avoid: [], noBg: [], free: {Ability: n}, note } }
+  //   groupA / groupB: { label, choices: { Name: { rage, willpower, start, gifts, giftsBy: {Female, Male, Metis}, note, bgMin } } }
+  //   rage / willpower: number | "breed" | "groupA" | null (no Rage);  gender: true adds a Gender option
+  //   renownNames, renownTotals (or null), rankTitles, backgrounds, bgMin, forms(sel) -> [...], formColumns
+  //   mfForbidden: Garou Merits/Flaws that don't fit;  names: { first, last, animal };  concepts, animalConcepts
+  function mergeSets(...sets) {
+    const core = {};
+    for (const s of sets) for (const [lvl, names] of Object.entries((s && s.core) || {})) core[lvl] = [...new Set([...(core[lvl] || []), ...names])];
+    return { core, extra: {} };
+  }
+  const valueFor = (v, sel) => (v && typeof v === "object" ? v[sel.breedIsMetis && "Metis" in v ? "Metis" : sel.gender] ?? v.Female : v);
+
+  function simpleGame(cfg) {
+    const physSocFor = cfg.formColumns || ["Strength", "Dexterity", "Stamina", "Manipulation", "Appearance"];
+    // Make sure every named starting Gift exists in its Level 1 list.
+    const addStart = (entry) => {
+      if (!entry || !entry.start || !entry.gifts) return;
+      const l1 = (entry.gifts.core[1] = entry.gifts.core[1] || []);
+      for (const n of entry.start) if (!l1.includes(n)) l1.push(n);
+    };
+    Object.values(cfg.breeds).forEach(addStart);
+    for (const grp of [cfg.groupA, cfg.groupB]) if (grp) Object.values(grp.choices).forEach(addStart);
+
+    function generate(opts) {
+      const rank = Math.min(5, Math.max(1, Number(opts.rank) || 1));
+      const freebieTotal = Number.isFinite(opts.freebies) ? opts.freebies : 15;
+      const breed = opts.breed || R.pick(Object.keys(cfg.breeds));
+      const b = cfg.breeds[breed];
+      const gender = pickGender(opts);
+      const sel = { breed, gender, breedIsMetis: breed === "Metis" };
+      const aName = cfg.groupA ? opts.groupA || R.pick(Object.keys(cfg.groupA.choices)) : null;
+      const bName = cfg.groupB ? opts.groupB || R.pick(Object.keys(cfg.groupB.choices)) : null;
+      const a = aName ? cfg.groupA.choices[aName] : {};
+      const g2 = bName ? cfg.groupB.choices[bName] : {};
+      const notes = [b.note, a.note, g2.note, cfg.note].filter(Boolean);
+
+      const { attrs, priority: attrPriority } = attributes();
+      const { abil, priority: abilPriority, ok: abilityOk } = abilities(b.avoid || []);
+      for (const [n, v] of Object.entries({ ...(cfg.free || {}), ...(b.free || {}) })) abil[n] = Math.min(5, (abil[n] || 0) + v);
+      const bgMin = { ...(cfg.bgMin || {}), ...(a.bgMin || {}) };
+      const { bg, allowed: bgAllowed } = backgrounds(cfg.backgrounds, [...(b.noBg || []), ...(a.noBg || [])], bgMin);
+      // Some groups get Background dots on top of the normal 5 (e.g. Knife-Skulkers' Contacts).
+      for (const [n, v] of Object.entries(a.bgBonus || {})) bg[n] = Math.min(5, (bg[n] || 0) + v);
+      if (b.maxAppearance && attrs.Appearance > b.maxAppearance) {
+        notes.push(`${breed} start with Appearance ${b.maxAppearance} at most (lowered from ${attrs.Appearance}).`);
+        attrs.Appearance = b.maxAppearance;
+      }
+
+      const aGifts = a.giftsBy ? (sel.breedIsMetis ? mergeSets(a.giftsBy.Female, a.giftsBy.Male) : a.giftsBy[gender]) : a.gifts;
+      const sources = { breed: [b.gifts, breed], groupA: [aGifts, aName], groupB: [g2.gifts, bName], general: [cfg.general, "General"], extra: cfg.extraSource || [null, null] };
+      const used = Object.values(sources).filter(([set, name]) => set && name);
+      const picker = giftPicker(used, false);
+      for (const key of cfg.startGifts) {
+        const [set, name] = sources[key];
+        if (!set) continue;
+        const start = key === "breed" ? b.start : key === "groupA" ? (a.startBy ? a.startBy[sel.breedIsMetis ? "Metis" : gender] : a.start) : key === "groupB" ? g2.start : null;
+        const pool = picker.available(1).filter((g) => g.source === name && (!start || start.includes(g.name)));
+        const pick = R.pick(pool.length ? pool : picker.available(1).filter((g) => g.source === name));
+        if (pick) picker.gifts.push(pick);
+      }
+      for (const n of a.freeGifts || []) if (!picker.gifts.some((g) => g.name === n)) picker.gifts.push({ name: n, level: 1, book: "Core", source: aName });
+      for (let lvl = 2; lvl <= rank; lvl++) picker.take(lvl, null);
+
+      const pickVal = (rule) => (rule === "breed" ? valueFor(b.gnosisFor || b.rage, sel) : rule === "groupA" ? valueFor(a.rage, sel) : rule);
+      const adv = {};
+      if (cfg.rage !== null) adv.Rage = cfg.rage === "groupA" ? valueFor(a.rage, sel) : typeof cfg.rage === "number" ? cfg.rage : pickVal(cfg.rage);
+      adv.Gnosis = typeof cfg.gnosis === "number" ? cfg.gnosis : valueFor(b.gnosis, sel);
+      adv.Willpower = cfg.willpower === "groupA" ? a.willpower : cfg.willpower === "breed" ? b.willpower : cfg.willpower;
+
+      const renown = cfg.renownNames ? renownFn(cfg.renownNames, cfg.renownTotals[rank - 1]) : {};
+      if (!cfg.renownNames) notes.push(cfg.renownNote || "This race has no Renown categories.");
+      else if (cfg.renownAssumed) notes.push(`Renown needed per Rank isn't given in the book; this uses Garou-style totals (${cfg.renownTotals.join("/")}) in any mix.`);
+
+      const W = window.WEREWOLF_DATA;
+      const mfData = { merits: W.merits.filter((x) => !x[3] && !(cfg.mfForbidden || []).includes(x[0])), flaws: W.flaws.filter((x) => !x[3] && !(cfg.mfForbidden || []).includes(x[0])) };
+      const rollable = (mf) => !W.randomSkip.includes(mf[0]) && !(b.avoid && W.lupusSkip.includes(mf[0]));
+      const mf = meritsFlaws(mfData, freebieTotal, rollable, opts.meritsFlaws !== "No");
+      const fr = spendFreebies({ attrs, abil, abilityOk, bg, bgAllowed, adv, picker }, mf.freebies);
+
+      const names = cfg.names;
+      const animalBorn = !!b.animal;
+      const name = animalBorn ? R.pick(names.animal) : `${firstName(names, gender)} ${R.pick(names.last)}`;
+      const header = [["Name", name], ["Player", ""], ["Chronicle", ""], ["Breed", breed]];
+      header.push(["Gender", cfg.gender && sel.breedIsMetis ? `${gender} (metis)` : gender]);
+      if (aName) header.push([cfg.groupA.label, a.title ? `${aName} (${a.title})` : aName]);
+      if (bName) header.push([cfg.groupB.label, bName]);
+      header.push(["Nature", R.pick(ARCHETYPES)], ["Demeanor", R.pick(ARCHETYPES)], ["Concept", animalBorn ? R.pick(cfg.animalConcepts) : R.pick(cfg.concepts)]);
+      header.push(["Rank", `${rank}${cfg.rankTitles ? ` (${cfg.rankTitles[rank - 1]})` : ""}`]);
+      while (header.length % 3) header.push([cfg.extraHeader ? cfg.extraHeader[header.length % cfg.extraHeader.length] : "Notes", ""]);
+
+      const extras = [];
+      for (const perk of [a.perk, g2.perk, b.perk].filter(Boolean)) extras.push({ title: perk[0], text: perk[1] });
+      if (b.deformity) extras.push({ title: "Metis Deformity", text: R.pick(cfg.deformities || ["Hunchback", "Lame leg", "Missing fingers", "Strange odor", "Twisted limb", "Withered arm"]) });
+
+      const own = used.map(([set, nm]) => [nm === "General" ? "General" : `${nm}`, nm, set]);
+      const others = [];
+      for (const [label, list] of [["breed", cfg.breeds], [cfg.groupA && cfg.groupA.label.toLowerCase(), cfg.groupA && cfg.groupA.choices], [cfg.groupB && cfg.groupB.label.toLowerCase(), cfg.groupB && cfg.groupB.choices]]) {
+        if (!list) continue;
+        for (const [n, v] of Object.entries(list)) {
+          const set = v.giftsBy ? mergeSets(v.giftsBy.Female, v.giftsBy.Male) : v.gifts;
+          if (set && !used.some(([, nm]) => nm === n)) others.push([`${n} (other ${label})`, n, set]);
+        }
+      }
+
+      const c = sheet({
+        game: cfg.game, name, header,
+        attrs, attrPriority, abil, abilPriority, extraAbil: b.extraAbil,
+        bg, bgList: cfg.backgrounds,
+        gifts: picker.gifts, giftOptions: giftOptions(own, others),
+        rank, renown,
+        merits: mf.merits, flaws: mf.flaws, mfData, mfOwn: "",
+        adv,
+        formColumns: ["Form", ...physSocFor, ...(cfg.formDiff ? ["Diff."] : [])],
+        formRows: formRows(cfg.forms(sel), attrs, physSocFor),
+        extras, notes,
+        freebieTotal, spent: fr.spent, leftover: fr.left,
+        books: cfg.books,
+        build: {
+          avoid: b.avoid, noBg: [...(b.noBg || []), ...(a.noBg || [])],
+          bgMin, bgStart: Object.fromEntries(Object.keys({ ...bgMin, ...(a.bgBonus || {}) }).map((n) => [n, (bgMin[n] || 0) + ((a.bgBonus || {})[n] || 0)])),
+          freeAbil: { ...(cfg.free || {}), ...(b.free || {}) },
+          keepGifts: a.freeGifts, maxAppearance: b.maxAppearance,
+          giftHint: startHint(cfg, b, a, g2, breed, aName, bName, gender, sel) + (rank > 1 ? ` Plus one Gift of each Level from 2 to ${rank}.` : ""),
+        },
+      });
+      c.selection = sel;
+      c.freeAbilityDots = Object.values({ ...(cfg.free || {}), ...(b.free || {}) }).reduce((s, x) => s + x, 0);
+      return c;
+    }
+
+    const options = [{ id: "breed", label: "Breed", choices: Object.keys(cfg.breeds) }];
+    options.push({ id: "gender", label: "Gender", choices: ["Female", "Male"] });
+    if (cfg.groupA) options.push({ id: "groupA", label: cfg.groupA.label, choices: Object.keys(cfg.groupA.choices) });
+    if (cfg.groupB) options.push({ id: "groupB", label: cfg.groupB.label, choices: Object.keys(cfg.groupB.choices) });
+    options.push(
+      { id: "rank", label: "Rank", choices: [1, 2, 3, 4, 5], default: 1, random: false },
+      { id: "freebies", label: "Freebie points", type: "number", min: 0, max: 500, default: 15 },
+      { id: "meritsFlaws", label: "Merits & Flaws", choices: ["Random", "No"], default: "Random", random: false }
+    );
+    WOD.registerGame({
+      id: cfg.id,
+      label: cfg.label,
+      options,
+      generate,
+      recompute(c) {
+        c.table.rows = formRows(cfg.forms(c.selection || {}), attrsFromSheet(c), physSocFor);
+      },
+      cfg,
+    });
+  }
+  const renownFn = (names, need) => renown(names, need);
+
+  // "Starting Gifts: one Level 1 Gift each from ..." for the points box.
+  function startHint(cfg, b, a, g2, breed, aName, bName, gender, sel) {
+    const where = { breed: breed, groupA: aName, groupB: bName, general: cfg.general ? "General" : null, extra: (cfg.extraSource || [])[1] };
+    const lists = { breed: b.start, groupA: a.startBy ? a.startBy[sel.breedIsMetis ? "Metis" : gender] : a.start, groupB: g2.start };
+    const parts = cfg.startGifts.filter((k) => where[k]).map((k) => (lists[k] ? `${where[k]} (${lists[k].join(", ")})` : where[k]));
+    let text = `One Level 1 Gift from each: ${parts.join("; ")}.`;
+    if (new Set(cfg.startGifts).size < cfg.startGifts.length) text = `${cfg.startGifts.length} Level 1 Gifts from: ${[...new Set(parts)].join("; ")}.`;
+    if ((a.freeGifts || []).length) text += ` ${a.freeGifts.join(", ")} comes free.`;
+    return text;
+  }
+
+  return { blank, budget, fillRest, traitKind, xpForChange, giftXp, giftLevel, giftSource, costOf, XP_STEP, pickGender, firstName, simpleGame, mergeSets, ATTRIBUTES, ABILITIES, ARCHETYPES, HEALTH, COSTS, pts, G, giftEntries, giftLabel, mfLabel, giftPicker, giftOptions, attributes, abilities, backgrounds, renown, meritsFlaws, spendFreebies, formRows, attrsFromSheet, groupByCost, sheet };
+})();
+
+</script>
+  <script>
+/*
+  Werewolf: the Apocalypse (classic World of Darkness, Revised rules).
+
+  All game data lives in the DATA object below, so lists can be fixed or
+  extended without touching the generator logic.
+
+  SOURCES (checked against the owner's PDFs, October 2026):
+    Core = Werewolf: the Apocalypse, Revised Edition (2000)
+    WPG  = Werewolf Players Guide (2nd edition, 1993)
+    CoG  = Tribebook: Children of Gaia (Revised)
+    GW   = Tribebook: Glass Walkers (2nd edition)
+    PGG  = Players Guide to Garou (Revised) (scanned; read with OCR + page images)
+    BG / GoF / SL = Bone Gnawers, Get of Fenris, Shadow Lords tribebooks (same)
+*/
+(function () {
+  const R = WOD.random;
+
+  const BOOKS = {
+    Core: "Werewolf: the Apocalypse, Revised",
+    WPG: "Werewolf Players Guide (2nd ed.)",
+    CoG: "Tribebook: Children of Gaia (Revised)",
+    GW: "Tribebook: Glass Walkers (2nd ed.)",
+  };
+
+  // Gift lists: core = { level: [names] }, extra = { book: { level: [names] } }
+  const F = WOD.fera;
+  const G = F.G;
+
+  const DATA = {
+    books: BOOKS,
+
+    breeds: {
+      Homid: {
+        gnosis: 1,
+        gifts: G(
+          { 1: ["Master of Fire", "Persuasion", "Smell of Man"], 2: ["Jam Technology", "Staredown"], 3: ["Disquiet", "Reshape Object"], 4: ["Cocoon", "Spirit Ward"], 5: ["Assimilation", "Part the Veil"] },
+          { WPG: { 3: ["Tongues"] } }
+        ),
+      },
+      Metis: {
+        gnosis: 3,
+        gifts: G(
+          { 1: ["Create Element", "Primal Anger", "Sense Wyrm"], 2: ["Burrow", "Curse of Hatred"], 3: ["Eyes of the Cat", "Mental Speech"], 4: ["Gift of the Porcupine", "Wither Limb"], 5: ["Madness", "Totem Gift"] },
+          { WPG: { 1: ["Shed"], 3: ["Splintered Claw"] } }
+        ),
+      },
+      Lupus: {
+        gnosis: 5,
+        gifts: G(
+          { 1: ["Hare's Leap", "Heightened Senses", "Sense Prey"], 2: ["Scent of Sight", "Sense the Unnatural"], 3: ["Catfeet", "Name the Spirit"], 4: ["Beast Life", "Gnaw"], 5: ["Elemental Gift", "Song of the Great Beast"] },
+          { WPG: { 3: ["Monkey Tail"], 4: ["Venom"] } }
+        ),
+      },
+    },
+
+    auspices: {
+      Ragabash: {
+        moon: "New Moon", rage: 1,
+        gifts: G(
+          { 1: ["Blur of the Milky Eye", "Open Seal", "Scent of Running Water"], 2: ["Blissful Ignorance", "Sense of the Prey", "Taking the Forgotten"], 3: ["Gremlins", "Open Moon Bridge"], 4: ["Luna's Blessing", "Whelp Body"], 5: ["Thieving Talons of the Magpie", "Thousand Forms"] },
+          { WPG: { 2: ["Alter Scent", "Obscure the Truth"], 3: ["Fly Feet"] } }
+        ),
+      },
+      Theurge: {
+        moon: "Crescent Moon", rage: 2,
+        gifts: G(
+          { 1: ["Mother's Touch", "Sense Wyrm", "Spirit Speech"], 2: ["Command Spirit", "Name the Spirit", "Sight from Beyond"], 3: ["Exorcism", "Pulse of the Invisible"], 4: ["Grasp the Beyond", "Spirit Drain"], 5: ["Feral Lobotomy", "The Malleable Spirit"] },
+          { WPG: { 2: ["Umbral Tether"], 3: ["Spirit Path", "Umbral Sight"], 4: ["Shadowplay"], 5: ["Spirit Vessel"] } }
+        ),
+      },
+      Philodox: {
+        moon: "Half Moon", rage: 3,
+        gifts: G(
+          { 1: ["Resist Pain", "Scent of the True Form", "Truth of Gaia"], 2: ["Call to Duty", "King of the Beasts", "Strength of Purpose"], 3: ["Weak Arm", "Wisdom of the Ancient Ways"], 4: ["Roll Over", "Scent of Beyond"], 5: ["Geas", "Wall of Granite"] },
+          { WPG: { 3: ["Sense Balance"], 4: ["Take the True Form"] } }
+        ),
+      },
+      Galliard: {
+        moon: "Gibbous Moon", rage: 4,
+        gifts: G(
+          { 1: ["Beast Speech", "Call of the Wyld", "Mindspeak"], 2: ["Call of the Wyrm", "Distractions", "Dreamspeak"], 3: ["Eye of the Cobra", "Song of Rage"], 4: ["Bridge Walker", "Shadows by the Firelight"], 5: ["Fabric of the Mind", "Head Games"] },
+          { WPG: { 2: ["Mimic"], 4: ["Song of the Siren"] } }
+        ),
+      },
+      Ahroun: {
+        moon: "Full Moon", rage: 5,
+        gifts: G(
+          { 1: ["Falling Touch", "Inspiration", "Razor Claws"], 2: ["Sense Silver", "Spirit of the Fray", "True Fear"], 3: ["Heart of Fury", "Silver Claws"], 4: ["Clenched Jaw", "Stoking Fury's Furnace"], 5: ["Kiss of Helios", "Strength of Will"] },
+          { WPG: { 3: ["Combat Healing", "Shatter Bone"] } }
+        ),
+      },
+    },
+
+    // Minimum Renown for each Rank (1-5), Core p. 185. Ragabash: any combination.
+    renownByRank: {
+      Ragabash: [3, 7, 13, 19, 25],
+      Theurge: [{ Wisdom: 3 }, { Glory: 1, Wisdom: 5 }, { Glory: 2, Honor: 1, Wisdom: 7 }, { Glory: 4, Honor: 2, Wisdom: 9 }, { Glory: 4, Honor: 9, Wisdom: 10 }],
+      Philodox: [{ Honor: 3 }, { Glory: 1, Honor: 4, Wisdom: 1 }, { Glory: 2, Honor: 6, Wisdom: 2 }, { Glory: 3, Honor: 8, Wisdom: 4 }, { Glory: 4, Honor: 10, Wisdom: 9 }],
+      Galliard: [{ Glory: 2, Wisdom: 1 }, { Glory: 4, Wisdom: 2 }, { Glory: 4, Honor: 2, Wisdom: 4 }, { Glory: 7, Honor: 2, Wisdom: 6 }, { Glory: 9, Honor: 5, Wisdom: 9 }],
+      Ahroun: [{ Glory: 2, Honor: 1 }, { Glory: 4, Honor: 1, Wisdom: 1 }, { Glory: 6, Honor: 3, Wisdom: 1 }, { Glory: 9, Honor: 5, Wisdom: 2 }, { Glory: 10, Honor: 9, Wisdom: 4 }],
+    },
+    rankTitles: ["Cliath", "Fostern", "Adren", "Athro", "Elder"],
+
+    // Willpower and Background limits: Core pp. 100-101 (Stargazers: Core appendix).
+    // noBackgrounds: can't take at creation. minBackgrounds: must start with.
+    tribes: {
+      "Black Furies": {
+        willpower: 3,
+        note: "Black Furies are almost all female; the only males are metis.",
+        gifts: G(
+          { 1: ["Breath of the Wyld", "Heightened Senses", "Sense Wyrm"], 2: ["Curse of Aeolus", "Sense of the Prey"], 3: ["Coup de Grace", "Visceral Agony"], 4: ["Body Wrack", "Wasp Talons"], 5: ["Thousand Forms", "Wyld Warp"] },
+          { WPG: { 2: ["Trail of Pain"], 3: ["Bacchantes' Rage", "Song of the Siren"], 5: ["Gorgon's Gaze"] } }
+        ),
+      },
+      "Bone Gnawers": {
+        willpower: 4,
+        noBackgrounds: ["Ancestors", "Pure Breed", "Resources"],
+        gifts: G(
+          { 1: ["Cooking", "Resist Toxin", "Tagalong"], 2: ["Blissful Ignorance", "Odious Aroma"], 3: ["Friend in Need", "Reshape Object"], 4: ["Attunement", "Infest"], 5: ["Riot", "Survivor"] },
+          { WPG: { 1: ["Cardboard Mansion"], 2: ["Trash Magnet"], 3: ["Beg", "Gift of the Termite"] } }
+        ),
+      },
+      "Children of Gaia": {
+        willpower: 4,
+        gifts: G(
+          { 1: ["Mercy", "Mother's Touch", "Resist Pain"], 2: ["Calm", "Luna's Armor"], 3: ["Dazzle", "Spirit Friend"], 4: ["Beast Life", "Strike the Air"], 5: ["Halo of the Sun", "The Living Wood"] },
+          {
+            WPG: { 3: ["Chant of Morpheus", "Guilt Trip"], 4: ["Unicorn's Grace"] },
+            CoG: { 1: ["Jam Weapon", "Swallow Rage", "Water-Conning"], 2: ["Domestic Seeming", "Grandmother's Touch", "Mule's Bane"], 3: ["Lover's Touch", "Soothe the Savage Beast", "The Cleaving Hoof", "Words of the Alpha"], 4: ["Serpent-Driving", "Uncaught Since the Primal Morn"], 5: ["Trust of Gaia"] },
+          }
+        ),
+      },
+      Fianna: {
+        willpower: 3,
+        gifts: G(
+          { 1: ["Faerie Light", "Persuasion", "Resist Toxin"], 2: ["Glib Tongue", "Howl of the Banshee"], 3: ["Faerie Kin"], 4: ["Balor's Gaze", "Phantasm"], 5: ["Call the Hunt", "Gift of the Spriggan"] },
+          { WPG: { 2: ["Brew"], 3: ["Ley Lines", "Woadling"], 4: ["Song of the Dire"] } }
+        ),
+      },
+      "Get of Fenris": {
+        willpower: 3,
+        noBackgrounds: ["Contacts"],
+        gifts: G(
+          { 1: ["Razor Claws", "Resist Pain", "Visage of Fenris"], 2: ["Halt the Coward's Flight", "Snarl of the Predator"], 3: ["Might of Thor", "Venom Blood"], 4: ["Hero's Stand", "Scream of Gaia"], 5: ["Fenris' Bite", "Horde of Valhalla"] },
+          { WPG: { 2: ["Sense Guilt"], 3: ["Mark the Enemy"], 4: ["Berserker's Song"] } }
+        ),
+      },
+      "Glass Walkers": {
+        willpower: 3,
+        noBackgrounds: ["Ancestors", "Mentor", "Pure Breed"],
+        gifts: G(
+          { 1: ["Control Simple Machine", "Diagnostics", "Trick Shot"], 2: ["Cybersenses", "Power Surge"], 3: ["Control Complex Machine", "Elemental Favor"], 4: ["Attunement", "Doppelganger"], 5: ["Chaos Mechanics", "Summon Net-Spider"] },
+          {
+            WPG: { 2: ["Heat Metal"], 3: ["Data Flow"] },
+            GW: { 1: ["Agro Culture"], 2: ["Pennies From Heaven", "Steel Fur"], 4: ["Tech Speak", "Tractor Beam"], 5: ["Family Debt"] },
+          }
+        ),
+      },
+      "Red Talons": {
+        willpower: 3,
+        lupusOnly: true,
+        noBackgrounds: ["Allies", "Contacts", "Resources"],
+        note: "Red Talons' Kinfolk are wolves only.",
+        gifts: G(
+          { 1: ["Beast Speech", "Scent of Running Water", "Wolf at the Door"], 2: ["Beastmind", "Sense of the Prey"], 3: ["Elemental Favor", "Trackless Waste"], 4: ["Gorge", "Quicksand"], 5: ["Curse of Lycaon", "Gaia's Vengeance"] },
+          { WPG: { 2: ["Cull the Herd", "Primal Instinct"], 4: ["Recycle"] } }
+        ),
+      },
+      "Shadow Lords": {
+        willpower: 3,
+        noBackgrounds: ["Allies", "Mentor"],
+        gifts: G(
+          { 1: ["Aura of Confidence", "Fatal Flaw", "Seizing the Edge"], 2: ["Clap of Thunder", "Luna's Armor"], 3: ["Direct the Storm", "Paralyzing Stare"], 4: ["Open Wounds", "Strength of the Dominator"], 5: ["Obedience", "Shadow Pack"] },
+          { WPG: { 3: ["Curse of Corruption", "Summon Stormcrow"] } }
+        ),
+      },
+      "Silent Striders": {
+        willpower: 3,
+        noBackgrounds: ["Ancestors", "Resources"],
+        gifts: G(
+          { 1: ["Sense Wyrm", "Silence", "Speed of Thought"], 2: ["Blissful Ignorance", "Messenger's Fortitude"], 3: ["Adaptation", "Great Leap"], 4: ["Attunement", "Speed Beyond Thought"], 5: ["Gate of the Moon", "Reach the Umbra"] },
+          { WPG: { 2: ["Summon Talisman"], 3: ["Long Running", "Tongues"], 4: ["Touch of Death"] } }
+        ),
+      },
+      "Silver Fangs": {
+        willpower: 3,
+        minBackgrounds: { "Pure Breed": 3 },
+        gifts: G(
+          { 1: ["Falcon's Grasp", "Lambent Flame", "Sense Wyrm"], 2: ["Empathy", "Luna's Armor"], 3: ["Silver Claws", "Wrath of Gaia"], 4: ["Mastery", "Mindblock"], 5: ["Luna's Avenger", "Paws of the Newborn Cub"] },
+          { WPG: { 2: ["Word of Honor"], 4: ["Ignore Death Blow"], 6: ["Renew the Cycle"] } }
+        ),
+      },
+      Stargazers: {
+        willpower: 5,
+        noBackgrounds: ["Fetish", "Resources"],
+        note: "In Revised the Stargazers have left the Garou Nation (Core appendix).",
+        gifts: G(
+          { 1: ["Balance", "Falling Touch", "Sense Wyrm"], 2: ["Inner Strength", "Surface Attunement"], 3: ["Clarity", "Merciful Blow"], 4: ["Preternatural Awareness", "Strike the Air"], 5: ["Circular Attack", "Wisdom of the Seer"] },
+          { WPG: { 3: ["Conundrum"], 4: ["Avoid Fate"], 5: ["Directing the Soul"] } }
+        ),
+      },
+      Uktena: {
+        willpower: 3,
+        gifts: G(
+          { 1: ["Sense Magic", "Shroud", "Spirit Speech"], 2: ["Spirit of the Bird", "Spirit of the Fish"], 3: ["Banish Totem", "Invisibility"], 4: ["Call Elemental", "Hand of the Earth Lords"], 5: ["Fabric of the Mind", "Fetish Doll"] },
+          { WPG: { 3: ["Scrying", "Secrets", "Umbral Sight"], 4: ["Pointing the Bone", "Sideways Attack"] } }
+        ),
+      },
+      Wendigo: {
+        willpower: 4,
+        noBackgrounds: ["Contacts", "Resources"],
+        gifts: G(
+          { 1: ["Call the Breeze", "Camouflage", "Resist Pain"], 2: ["Cutting Wind", "Speak with Wind Spirits"], 3: ["Bloody Feast", "Wisdom of the Ancient Ways"], 4: ["Call the Cannibal Spirit", "Chill of Early Frost"], 5: ["Heart of Ice", "Invoke the Spirits of the Storm"] },
+          { WPG: { 2: ["Fog", "Ghost Pack"], 4: ["Harano"] } }
+        ),
+      },
+    },
+
+    attributes: {
+      Physical: ["Strength", "Dexterity", "Stamina"],
+      Social: ["Charisma", "Manipulation", "Appearance"],
+      Mental: ["Perception", "Intelligence", "Wits"],
+    },
+
+    // Revised character sheet (Core p. 98).
+    abilities: {
+      Talents: ["Alertness", "Athletics", "Brawl", "Dodge", "Empathy", "Expression", "Intimidation", "Primal-Urge", "Streetwise", "Subterfuge"],
+      Skills: ["Animal Ken", "Crafts", "Drive", "Etiquette", "Firearms", "Leadership", "Melee", "Performance", "Stealth", "Survival"],
+      Knowledges: ["Computer", "Enigmas", "Investigation", "Law", "Linguistics", "Medicine", "Occult", "Politics", "Rituals", "Science"],
+    },
+
+    // Human-world abilities a wolf-born character never starts with (house rule).
+    lupusAvoids: ["Computer", "Drive", "Firearms", "Law", "Politics", "Science", "Etiquette"],
+
+    backgrounds: ["Allies", "Ancestors", "Contacts", "Fetish", "Kinfolk", "Mentor", "Pure Breed", "Resources", "Rites", "Totem"],
+
+    // [name, cost (number or "a-b" range), book, tribe limit (optional)]
+    merits: [
+      ["Code of Honor", 1, "WPG"], ["Berserker", 2, "WPG"],
+      ["Common Sense", 1, "WPG"], ["Concentration", 1, "WPG"], ["Lightning Calculator", 1, "WPG"], ["Eidetic Memory", 2, "WPG"], ["Calm Heart", 3, "WPG"], ["Iron Will", 5, "WPG"], ["Self-Confident", 5, "WPG"],
+      ["Animal Magnetism", 1, "WPG"], ["Computer Aptitude", 1, "WPG"], ["Expert Driver", 1, "WPG"], ["Mechanical Aptitude", 1, "WPG"], ["Ambidextrous", 2, "WPG"], ["Natural Linguist", 2, "WPG"], ["Daredevil", 3, "WPG"], ["Perfect Balance", 3, "WPG"], ["Jack-of-All-Trades", 5, "WPG"],
+      ["Ancestor Ally", 1, "WPG"], ["True Love", 1, "WPG"], ["Moon-Bound", 2, "WPG"], ["Danger Sense", 3, "WPG"], ["Luck", 3, "WPG"], ["Natural Channel", 3, "WPG"], ["Supernatural Companion", 3, "WPG"], ["Charmed Existence", 5, "WPG"], ["Guardian Angel", 6, "WPG"], ["Immune to Wyrm Emanations", 6, "WPG"], ["Silver Tolerance", 7, "WPG"], ["True Faith", 7, "WPG"],
+      ["Favor", "1-3", "WPG"], ["Local Ties", "1-3", "WPG"], ["Reputation", 2, "WPG"], ["Corporate CEO", 5, "WPG"],
+      ["Double-Jointed", 1, "WPG"], ["Mixed Morph", 1, "WPG"], ["Bad Taste", 2, "WPG"], ["Fair Glabro", 2, "WPG"], ["Lack of Scent", 2, "WPG"], ["Longevity", 2, "WPG"], ["Huge Size", 4, "WPG"], ["Metamorph", 6, "WPG"],
+      ["Distant Sire", 1, "CoG", "Children of Gaia"], ["Supporter", 2, "CoG", "Children of Gaia"],
+      ["Machine Affinity", 4, "GW", "Glass Walkers"],
+    ],
+    flaws: [
+      ["Dark Secret", 1, "WPG"], ["Intolerance", 1, "WPG"], ["Nightmares", 1, "WPG"], ["Overconfident", 1, "WPG"], ["Phobia", "1 or 3", "WPG"], ["Soft-Hearted", 1, "WPG"], ["Speech Impediment", 1, "WPG"],
+      ["Curiosity", 2, "WPG"], ["Low Self-Image", 2, "WPG"], ["Pack Mentality", 2, "WPG"], ["Short Fuse", 2, "WPG"], ["Vengeance", 2, "WPG"], ["Deranged", 3, "WPG"], ["Driving Goal", 3, "WPG"], ["Hatred", 3, "WPG"], ["Territorial", 3, "WPG"],
+      ["Amnesia", 2, "WPG"], ["Confused", 2, "WPG"], ["Weak-Willed", 2, "WPG"], ["Absent-Minded", 3, "WPG"],
+      ["Color Blindness", 1, "WPG"], ["Bad Sight", 2, "WPG"], ["One Eye", 2, "WPG"], ["Deaf", 4, "WPG"], ["Blind", 6, "WPG"],
+      ["Inept", 5, "WPG"], ["Uneducated", 5, "WPG"], ["Unskilled", 5, "WPG"],
+      ["Insane Past Life", 1, "WPG"], ["Slip Sideways", 1, "WPG"], ["Mark of the Predator", 2, "WPG"], ["Sign of the Wolf", 2, "WPG"], ["Pierced Veil", 3, "WPG"], ["Dark Fate", 5, "WPG"], ["Taint of Corruption", 7, "WPG"],
+      ["Banned Transformation", "1-6", "WPG"], ["Cursed", "1-5", "WPG"], ["Foe from the Past", "1-3", "WPG"], ["Forced Transformation", "1-4", "WPG"],
+      ["Enemy", "1-5", "WPG"], ["Twisted Upbringing", 1, "WPG"], ["Persistent Parents", 2, "WPG"], ["Hunted", 3, "WPG"], ["Notoriety", 3, "WPG"], ["Ward", 3, "WPG"],
+      ["Short", 1, "WPG"], ["Strict Carnivore", 1, "WPG"], ["Disfigured", 2, "WPG"], ["Deformity", 3, "WPG"], ["Lame", 3, "WPG"], ["Monstrous", 3, "WPG"], ["One Arm", 3, "WPG"], ["Mute", 4, "WPG"], ["Wolf Years", 5, "WPG"],
+      ["Charach", 1, "CoG", "Children of Gaia"], ["Naive", 1, "CoG", "Children of Gaia"], ["Vegan", 1, "CoG", "Children of Gaia"], ["Docile", "1-3", "CoG", "Children of Gaia"], ["Burned Out", 3, "CoG", "Children of Gaia"], ["Ahimsa", 4, "CoG", "Children of Gaia"],
+      ["Jinx", "3-4", "GW", "Glass Walkers"],
+    ],
+    maxFlawPoints: 7,
+    // Not rolled at random: need a specific Background, or don't suit wolves.
+    randomSkip: ["Insane Past Life", "Corporate CEO"],
+    lupusSkip: ["Computer Aptitude", "Expert Driver", "Mechanical Aptitude", "Corporate CEO", "Persistent Parents", "Strict Carnivore", "Uneducated"],
+
+    archetypes: ["Architect", "Autocrat", "Bon Vivant", "Bravo", "Caregiver", "Celebrant", "Competitor", "Conformist", "Conniver", "Curmudgeon", "Deviant", "Director", "Fanatic", "Gallant", "Judge", "Loner", "Martyr", "Masochist", "Monster", "Penitent", "Perfectionist", "Rebel", "Rogue", "Survivor", "Thrill-Seeker", "Traditionalist", "Visionary"],
+
+    concepts: ["Activist", "Bartender", "Bike courier", "Drifter", "Ex-soldier", "Firefighter", "Forest ranger", "Gang member", "Graduate student", "Hunter-guide", "Investigative reporter", "Mechanic", "Musician", "Nurse", "Paramedic", "Park-dwelling loner", "Pastor", "Private investigator", "Street artist", "Tattoo artist", "Truck driver", "Wildlife biologist"],
+    lupusConcepts: ["Pack scout", "Lone wanderer", "Den mother", "Mountain hunter", "City-edge scavenger", "Northern tracker", "Restless young wolf", "Old grey wolf"],
+
+    metisDeformities: ["Albinism", "Animal eyes", "Cleft palate", "Hairless patches", "Hunchback", "Lame leg", "Missing fingers", "Mute", "Seizures", "Sickly", "Strange odor", "Twisted limb", "Withered arm", "Patches of fur"],
+
+    // Change from Homid form. Appearance becomes 0 in Crinos.
+    forms: [
+      { name: "Homid", mods: {}, diff: 6 },
+      { name: "Glabro", mods: { Strength: 2, Stamina: 2, Manipulation: -1, Appearance: -1 }, diff: 7 },
+      { name: "Crinos", mods: { Strength: 4, Dexterity: 1, Stamina: 3, Manipulation: -3 }, zero: ["Appearance"], diff: 6 },
+      { name: "Hispo", mods: { Strength: 3, Dexterity: 2, Stamina: 3, Manipulation: -3 }, diff: 7 },
+      { name: "Lupus", mods: { Strength: 1, Dexterity: 2, Stamina: 2, Manipulation: -3 }, diff: 6 },
+    ],
+
+    healthLevels: [["Bruised", ""], ["Hurt", "-1"], ["Injured", "-1"], ["Wounded", "-2"], ["Mauled", "-2"], ["Crippled", "-5"], ["Incapacitated", ""]],
+
+    names: {
+      male: ["Alex", "Bram", "Eli", "Gabe", "Ivan", "Kai", "Marco", "Owen", "Quinn", "Sam", "Tomas", "Vic", "Yuri"],
+      female: ["Ana", "Cass", "Dana", "Freya", "Hana", "Jess", "Lena", "Nadia", "Petra", "Rosa", "Una", "Willa", "Zoe"],
+      last: ["Avery", "Becker", "Cruz", "Doyle", "Ellis", "Ferro", "Grant", "Haas", "Ivers", "Jansen", "Kowal", "Lund", "Moreau", "Novak", "Okafor", "Pryce", "Quist", "Reyes", "Sato", "Thorne", "Ulrich", "Vance", "Walsh", "Young"],
+      deedStart: ["Runs", "Howls", "Walks", "Sings", "Hunts", "Sleeps", "Stands", "Watches", "Bites", "Dreams", "Laughs", "Speaks"],
+      deedEnd: ["at-Moonrise", "in-the-Snow", "Through-Fire", "with-Ghosts", "Against-the-Wind", "in-Shadow", "Under-Stars", "Before-Dawn", "on-Broken-Glass", "Beside-the-River", "for-the-Lost", "Without-Fear"],
+    },
+
+    // Core p. 102.
+    freebieCosts: { Attribute: 5, Ability: 2, Background: 1, Gift: 7, Rage: 1, Gnosis: 2, Willpower: 1 },
+  };
+
+  // ---- Supplements read with OCR (Players Guide to Garou, three tribebooks).
+  Object.assign(BOOKS, {
+    PGG: "Players Guide to Garou (Revised)",
+    BG: "Tribebook: Bone Gnawers (Revised)",
+    GoF: "Tribebook: Get of Fenris (Revised)",
+    SL: "Tribebook: Shadow Lords",
+  });
+  const groupSet = (name) => (DATA.breeds[name] || DATA.auspices[name] || DATA.tribes[name]).gifts;
+  const addGifts = (book, table) => {
+    for (const [group, byLevel] of Object.entries(table)) groupSet(group).extra[book] = byLevel;
+  };
+  addGifts("PGG", {
+    Homid: { 2: ["Divide"], 3: ["Tongues"], 5: ["Ubermensch"] },
+    Metis: { 1: ["Shed"], 3: ["Shell"], 5: ["Umbral Body"] },
+    Lupus: { 1: ["Prey Mind"], 3: ["Death Whispers"], 4: ["Venom"] },
+    Ragabash: { 2: ["Alter Scent"], 3: ["Riddle"], 5: ["Blank"] },
+    Theurge: { 1: ["Umbral Tether"], 2: ["Spirit Skin"], 3: ["Umbral Tracking"] },
+    Philodox: { 1: ["Ma'at's Feather"], 3: ["Bonds that Tie Us"], 4: ["Take the True Form"] },
+    Galliard: { 1: ["Memory Circle"], 2: ["Mimic"], 3: ["Sing the Spirits"] },
+    Ahroun: { 1: ["Spur Claws"], 3: ["Combat Healing"], 5: ["Shared Strength"] },
+    "Black Furies": { 1: ["Arion's Burden"], 2: ["Trail of Pain"], 4: ["Calm Before the Storm"] },
+    "Bone Gnawers": { 1: ["Cardboard Mansion"], 2: ["Trash Magnet"], 4: ["Cliché Curse"] },
+    "Children of Gaia": { 2: ["Stinging Blows"], 3: ["Pain Chain"], 4: ["Unicorn's Grace"] },
+    Fianna: { 2: ["St. Herve's Folly"], 3: ["Ley Lines"], 4: ["Airitech's Daughters"] },
+    "Get of Fenris": { 1: ["Sigurd's Stride"], 2: ["Berserker's Song"], 3: ["Alberich's Claws"] },
+    "Glass Walkers": { 2: ["Garafena's Crown"], 3: ["Data Flow"], 5: ["Technotheocratic Apocalyptica"] },
+    "Red Talons": { 2: ["Primal Instinct"], 3: ["Herding the Infant Ape"], 4: ["Form of Akhlut"] },
+    "Shadow Lords": { 1: ["Rains of Mercy"], 3: ["Summon Stormcrow"], 4: ["Ubiquitous Presence"] },
+    "Silent Striders": { 2: ["Summon Talisman"], 3: ["Death Track"], 4: ["Guiding Hand of Djeheuty"] },
+    "Silver Fangs": { 3: ["Claim of Authority", "Dominance Blow"], 5: ["Ignore Death Blow"] },
+    Uktena: { 2: ["Medicine Dreams"], 3: ["Scrying"], 4: ["Pointing the Bone"] },
+    Wendigo: { 2: ["Ghost Pack"], 4: ["Curse of Harano"] },
+  });
+  addGifts("BG", {
+    "Bone Gnawers": {
+      1: ["Declamation", "Desperate Strength", "Kitchen Chemistry", "Smell of Success", "The Hungry Hound", "The Mark", "Urban Ward"],
+      2: ["Dead End", "Hootenanny", "I Got a Rock", "On Patrol", "Road Ward", "Stone-Throwing Devil"],
+      3: ["Cooter's Revenge", "Dumpster Diving", "Laugh of the Hyena", "Lucky Bastard", "Rant and Rave", "Streets Tell Stories"],
+      4: ["Face in the Crowd", "Shadow of the Rat", "Trust Me"],
+      5: ["Help Me", "Piping"],
+    },
+  });
+  addGifts("GoF", {
+    "Get of Fenris": { 1: ["Safe Haven", "Snow Running"], 2: ["Troll Skin", "Wearing the Bear Shirt"], 3: ["Loki's Touch"], 4: ["Glory-Scars"], 5: ["Strength of the Ancestors", "The Good Death"], 6: ["Call Great Fenris"] },
+  });
+  addGifts("SL", {
+    "Shadow Lords": { 1: ["Perceptive Servant", "Purify Scent"], 2: ["Cold Voice of Reason", "Pure Identity"], 3: ["Dark Aerie", "Interrogator", "Raven's Wings"], 4: ["Seeds of Doubt"], 5: ["Mask Taint", "Purity of Blood"] },
+  });
+  // Where a newer book repeats a Gift, keep only the newest copy (Core > PGG > tribebooks > WPG).
+  const order = ["PGG", "CoG", "GW", "BG", "GoF", "SL", "WPG"];
+  for (const group of [...Object.values(DATA.breeds), ...Object.values(DATA.auspices), ...Object.values(DATA.tribes)]) {
+    const seen = new Set(Object.values(group.gifts.core).flat());
+    for (const book of order) {
+      const byLevel = group.gifts.extra[book];
+      if (!byLevel) continue;
+      for (const lvl of Object.keys(byLevel)) {
+        byLevel[lvl] = byLevel[lvl].filter((n) => !seen.has(n));
+        byLevel[lvl].forEach((n) => seen.add(n));
+        if (!byLevel[lvl].length) delete byLevel[lvl];
+      }
+    }
+  }
+
+  // Merits & Flaws: the Revised Players Guide to Garou list (Chapter Four) replaces
+  // the 2nd-edition entries it covers; older WPG-only entries stay available.
+  const pggMerits = [
+    ["Double-Jointed", 1], ["Mixed Morph", "1 or 5"], ["Perfect Balance", 1], ["Wolf Sight", 1], ["Ambidextrous", 2], ["Fair Glabro", 2], ["Lack of Scent", 2], ["Daredevil", 3], ["Huge Size", 4], ["Metamorph", 7],
+    ["Animal Magnetism", 1], ["Elder's Favor", "1-3"], ["Family Support", 1], ["Reputation", 2],
+    ["Common Sense", 1], ["Concentration", 1], ["Berserker", 2], ["Code of Honor", 2], ["Eidetic Memory", 2], ["Calm Heart", 3], ["Iron Will", 3], ["Jack-of-All-Trades", 3],
+    ["Ancestor Ally", 1], ["Moon-Bound", 2], ["Spirit Magnet", 2], ["Natural Channel", 3], ["Lucky", 4], ["True Love", 4], ["Immune to Wyrm Emanations", 6], ["True Faith", 7],
+  ].map((m) => [...m, "PGG"]);
+  const pggFlaws = [
+    ["Animal Musk", 1], ["Hard of Hearing", 1], ["Monochrome Vision", 1], ["No Partial Transformation", 1], ["Short", 1], ["Strict Carnivore", 1], ["One Eye", 2], ["Bad Sight", 3], ["Deformity", 3], ["Lame", 3], ["Monstrous", 3], ["One Arm", 3], ["Deaf", 4], ["Mute", 4], ["Wolf Years", 5], ["Blind", 6],
+    ["Dark Secret", 1], ["Twisted Upbringing", 1], ["Enemy", "1-5"], ["Persistent Parents", 2], ["Hunted", 3], ["Notoriety", 3], ["Metis Child", 4],
+    ["Compulsion", 1], ["Nightmares", 1], ["Shy", 1], ["Soft-Hearted", 1], ["Speech Impediment", 1], ["Amnesia", 2], ["Pack Mentality", 2], ["Phobia", "2 or 3"], ["Short Fuse", 2], ["Vengeful", 2], ["Weak-Willed", 2], ["Deranged", 3], ["Hatred", 3], ["Territorial", 3], ["Ability Deficit", 5],
+    ["Insane Ancestor", 1], ["Slip Sideways", 1], ["Mark of the Predator", 2], ["Sign of the Wolf", 2], ["Pierced Veil", 3], ["Banned Transformation", "1-6"], ["Cursed", "1-5"], ["Foe from the Past", "1-3"], ["Forced Transformation", "1-4"],
+  ].map((f) => [...f, "PGG"]);
+  // Older names the Revised book renamed or dropped in favor of Backgrounds.
+  const replaced = new Set(["Luck", "Favor", "Vengeance", "Color Blindness", "Insane Past Life", "Corporate CEO"]);
+  const pggNames = new Set([...pggMerits, ...pggFlaws].map((x) => x[0]));
+  const keepOld = (x) => x[2] !== "WPG" || (!pggNames.has(x[0]) && !replaced.has(x[0]));
+  DATA.merits = [
+    ...pggMerits,
+    ...DATA.merits.filter(keepOld),
+    ["Struggling", 1, "BG", "Bone Gnawers"], ["Shame", 2, "BG", "Bone Gnawers"], ["Ratkin Buddies", 3, "BG", "Bone Gnawers"],
+    ["Alcohol Tolerance", 1, "GoF", "Get of Fenris"], ["Gregarious", 2, "GoF", "Get of Fenris"],
+    ["Political Mentor", 2, "SL", "Shadow Lords"], ["Diplomatic Immunity", 3, "SL", "Shadow Lords"],
+  ];
+  DATA.flaws = [
+    ...pggFlaws,
+    ...DATA.flaws.filter(keepOld),
+    ["Anosmia", 1, "BG", "Bone Gnawers"], ["Lost Homid", 2, "BG", "Bone Gnawers"], ["Jackal's Blood", 5, "BG", "Bone Gnawers"],
+    ["Wotan's Curse", 2, "GoF", "Get of Fenris"],
+    ["Original Sin", 1, "SL", "Shadow Lords"],
+  ];
+  // Need a specific Background or breed, so not rolled at random.
+  DATA.randomSkip.push("Insane Ancestor", "Ancestor Ally", "Lost Homid", "Metis Child");
+  DATA.lupusSkip.push("Family Support", "Jack-of-All-Trades");
+
+  window.WEREWOLF_DATA = DATA;
+
+  const physSoc = ["Strength", "Dexterity", "Stamina", "Manipulation", "Appearance"];
+
+  function makeName(breed, gender) {
+    const deed = R.pick(DATA.names.deedStart) + "-" + R.pick(DATA.names.deedEnd);
+    if (breed === "Lupus") return deed;
+    const human = F.firstName(DATA.names, gender) + " " + R.pick(DATA.names.last);
+    return R.chance(0.5) ? `${human} ("${deed}")` : human;
+  }
+
+  function generate(opts) {
+    const rank = Math.min(5, Math.max(1, Number(opts.rank) || 1));
+    const freebieTotal = Number.isFinite(opts.freebies) ? opts.freebies : 15;
+    const coreOnly = opts.books === "Core book only";
+
+    // Black Furies are female; their only males are metis.
+    const wantGender = opts.gender === "Female" || opts.gender === "Male" ? opts.gender : null;
+    const breed = opts.breed || (wantGender === "Male" && opts.tribe === "Black Furies" ? "Metis" : R.pick(Object.keys(DATA.breeds)));
+    const auspice = opts.auspice || R.pick(Object.keys(DATA.auspices));
+    let tribeChoices = Object.keys(DATA.tribes);
+    if (breed !== "Lupus") tribeChoices = tribeChoices.filter((t) => !DATA.tribes[t].lupusOnly);
+    if (wantGender === "Male" && breed !== "Metis") tribeChoices = tribeChoices.filter((t) => t !== "Black Furies");
+    const tribe = opts.tribe || R.pick(tribeChoices);
+    const gender = wantGender || (tribe === "Black Furies" && breed !== "Metis" ? "Female" : F.pickGender({}));
+
+    const b = DATA.breeds[breed];
+    const a = DATA.auspices[auspice];
+    const t = DATA.tribes[tribe];
+    const notes = [];
+    if (tribe === "Red Talons" && breed !== "Lupus") notes.push("Red Talons are almost all Lupus (a few metis); this combination breaks that rule.");
+    if (t.note) notes.push(t.note);
+    if (tribe === "Black Furies" && gender === "Male" && breed !== "Metis") notes.push("A male Black Fury who isn't metis breaks the tribe's rule.");
+
+    // Attributes 7/5/3, Abilities 13/9/5 (max 3), Backgrounds 5.
+    const { attrs, priority: attrPriority } = F.attributes();
+    const { abil, priority: abilPriority, ok: abilityOk } = F.abilities(breed === "Lupus" ? DATA.lupusAvoids : []);
+    const notAllowed = [...(t.noBackgrounds || []), ...(breed === "Lupus" ? ["Resources"] : [])];
+    const { bg, allowed: bgAllowed } = F.backgrounds(DATA.backgrounds, notAllowed, t.minBackgrounds || {});
+
+    // Gifts: one Level 1 each from breed, auspice and tribe, then one of each new level per Rank.
+    const picker = F.giftPicker([[b.gifts, breed], [a.gifts, auspice], [t.gifts, tribe]], coreOnly);
+    [breed, auspice, tribe].forEach((s) => picker.take(1, s));
+    for (let lvl = 2; lvl <= rank; lvl++) picker.take(lvl, null);
+
+    const adv = { Rage: a.rage, Gnosis: b.gnosis, Willpower: t.willpower };
+    const renown = F.renown(["Glory", "Honor", "Wisdom"], DATA.renownByRank[auspice][rank - 1]);
+
+    const rollable = (mf) =>
+      !DATA.randomSkip.includes(mf[0]) &&
+      !(breed === "Lupus" && DATA.lupusSkip.includes(mf[0])) &&
+      (!mf[3] || mf[3] === tribe) &&
+      (!coreOnly || mf[2] === "Core");
+    const mf = F.meritsFlaws(DATA, freebieTotal, rollable, opts.meritsFlaws !== "No");
+    const fr = F.spendFreebies({ attrs, abil, abilityOk, bg, bgAllowed, adv, picker }, mf.freebies);
+
+    const name = makeName(breed, gender);
+    const extras = [];
+    if (breed === "Metis") extras.push({ title: "Metis Deformity", text: R.pick(DATA.metisDeformities) });
+
+    const others = [
+      ...Object.entries(DATA.breeds).filter(([n]) => n !== breed).map(([n, v]) => [`${n} (other breed)`, n, v.gifts]),
+      ...Object.entries(DATA.auspices).filter(([n]) => n !== auspice).map(([n, v]) => [`${n} (other auspice)`, n, v.gifts]),
+      ...Object.entries(DATA.tribes).filter(([n]) => n !== tribe).map(([n, v]) => [`${n} (other tribe)`, n, v.gifts]),
+    ];
+
+    return F.sheet({
+      game: "Werewolf: the Apocalypse",
+      name,
+      header: [
+        ["Name", name], ["Player", ""], ["Chronicle", ""],
+        ["Breed", breed], ["Auspice", `${auspice} (${a.moon})`], ["Tribe", tribe],
+        ["Nature", R.pick(DATA.archetypes)], ["Demeanor", R.pick(DATA.archetypes)], ["Concept", breed === "Lupus" ? R.pick(DATA.lupusConcepts) : R.pick(DATA.concepts)],
+        ["Gender", gender], ["Rank", `${rank} (${DATA.rankTitles[rank - 1]})`], ["Camp", ""],
+        ["Pack", ""], ["Totem", ""], ["Sept", ""],
+      ],
+      attrs, attrPriority, abil, abilPriority,
+      bg, bgList: DATA.backgrounds,
+      gifts: picker.gifts,
+      giftOptions: F.giftOptions([[`${breed} (breed)`, breed, b.gifts], [`${auspice} (auspice)`, auspice, a.gifts], [`${tribe} (tribe)`, tribe, t.gifts]], others),
+      rank, renown,
+      merits: mf.merits, flaws: mf.flaws, mfData: DATA, mfOwn: tribe,
+      adv,
+      formColumns: ["Form", ...physSoc, "Diff."],
+      formRows: F.formRows(DATA.forms, attrs, physSoc),
+      extras, notes,
+      freebieTotal, spent: fr.spent, leftover: fr.left,
+      books: BOOKS,
+      build: {
+        avoid: breed === "Lupus" ? DATA.lupusAvoids : [],
+        noBg: notAllowed,
+        bgMin: t.minBackgrounds, bgStart: t.minBackgrounds,
+        giftHint: `One Level 1 Gift each from your breed (${breed}), auspice (${auspice}) and tribe (${tribe})${rank > 1 ? `, plus one Gift of each Level from 2 to ${rank}` : ""}.`,
+      },
+    });
+  }
+
+  // Keep the Forms table in step with hand-edited Attributes.
+  function recompute(c) {
+    c.table.rows = F.formRows(DATA.forms, F.attrsFromSheet(c), physSoc);
+  }
+
+  WOD.registerGame({
+    id: "werewolf",
+    label: "Werewolf: the Apocalypse",
+    options: [
+      { id: "breed", label: "Breed", choices: Object.keys(DATA.breeds) },
+      { id: "auspice", label: "Auspice", choices: Object.keys(DATA.auspices) },
+      { id: "tribe", label: "Tribe", choices: Object.keys(DATA.tribes) },
+      { id: "gender", label: "Gender", choices: ["Female", "Male"] },
+      { id: "rank", label: "Rank", choices: [1, 2, 3, 4, 5], default: 1, random: false },
+      { id: "freebies", label: "Freebie points", type: "number", min: 0, max: 500, default: 15 },
+      { id: "meritsFlaws", label: "Merits & Flaws", choices: ["Random", "No"], default: "Random", random: false },
+      { id: "books", label: "Books", choices: ["All my books", "Core book only"], default: "All my books", random: false },
+    ],
+    generate,
+    recompute,
+  });
+})();
+
+</script>
+  <script>
+/*
+  Bastet (werecats) for Werewolf: the Apocalypse.
+
+  SOURCE: Breedbook: Bastet ("Core" for this game). Character creation p. 90-91,
+  Rank p. 89, tribe form tables in Chapter Two, Gifts in Chapter Four.
+  Merits & Flaws: the Werewolf lists (Players Guide to Garou / Werewolf Players Guide),
+  minus the ones the Bastet book calls inappropriate for werecats (p. 79).
+*/
+(function () {
+  const R = WOD.random;
+  const F = WOD.fera;
+  const G = F.G;
+
+  const BOOKS = { Core: "Breedbook: Bastet", PGG: "Players Guide to Garou (Revised)", WPG: "Werewolf Players Guide (2nd ed.)" };
+
+  // Form modifiers by tribe. Where the book prints an unsigned "0" for Appearance in
+  // Crinos/Chatro, the form's Appearance becomes 0 (like a Garou Crinos).
+  const forms = (sokto, crinos, chatro, feline) =>
+    [["Homid", {}], ["Sokto", sokto], ["Crinos", crinos], ["Chatro", chatro], ["Feline", feline]].map(([name, m]) => {
+      const mods = { ...m };
+      const zero = [];
+      if (mods.Appearance === "zero") { delete mods.Appearance; zero.push("Appearance"); }
+      return { name, mods, zero };
+    });
+  const S = (Str, Dex, Sta, Man, App) => ({ Strength: Str, Dexterity: Dex, Stamina: Sta, Manipulation: Man, ...(App === undefined ? {} : { Appearance: App }) });
+  const Z = "zero";
+
+  const DATA = {
+    books: BOOKS,
+
+    breeds: {
+      Homid: { gnosis: 2, gifts: G({ 1: ["Cat Claws", "Sweet Hunter's Smile"], 2: ["Eavesdropper's Ear", "Jam Technology"], 3: ["Babel's Cure", "Craft of the Maker"], 4: ["Monkey's Uncle", "What's the Password?"], 5: ["Black Friday", "Deny the Hungry"] }) },
+      Metis: { gnosis: 4, gifts: G({ 1: ["Create Element", "Sense Primal Nature"], 2: ["Blinding Moonbeam Gaze", "Whisker Sight"], 3: ["Fist of Cahlash", "Spirit-Touch"], 4: ["Moon's Gateway", "Redeem the Waste"], 5: ["Moon Sense", "Wrath of Nala"] }) },
+      Feline: { gnosis: 6, gifts: G({ 1: ["Kitten's Cry", "Mark as Mine"], 2: ["Killer's Leap", "Perfect Cover"], 3: ["Underbelly", "Whisker Sight"], 4: ["Ghosts at Play", "Hand of Will"], 5: ["Judgment of Pestilence", "Revolt of the Land"] }) },
+    },
+
+    pryio: {
+      Daylight: "open and honest; tackles things head-on",
+      Twilight: "sees many shades; prefers complex, artistic pursuits",
+      Night: "private; angry when someone intrudes",
+    },
+
+    general: G({
+      1: ["Banish Sickness", "Catfeet", "Command Attention", "Dowsing", "Lick Wounds", "Open Seal", "Pathfinder's Pride", "Razor Claws", "Sense the Truth", "Sense Unmaker's Hand", "Silent Stalking", "Spirits' Sight", "Treeclimber"],
+      2: ["Call Spirits", "Cat Sight", "Eerie Eyes", "First Slash", "Night Terror", "Night's Passage", "Sense of the Prey", "Sense Silver", "Shriek", "Summon Water", "Swipe", "Touch the Mind"],
+      3: ["Call the Pride", "Caper", "Cat Fear", "Cheshire Prank", "Command the Prey", "Farsight", "Freyja's Blessing", "Gift of Rage", "Ignore Pain", "Impala's Flight", "Purr", "Righteous Gaze"],
+      4: ["Attunement", "Clawstorm", "Fortuna", "Spirit Claws", "Spitfire", "Walking Between Worlds", "Wolf's Terror"],
+      5: ["Future Warning", "Jump to the Moon", "Perfect Passage", "Soothe/Summon Storm", "Withering Stare"],
+    }),
+
+    tribes: {
+      Bagheera: { animal: "panther/leopard", rage: 2, willpower: 4, forms: forms(S(1, 1, 2, -1, -1), S(3, 3, 3, -3, Z), S(2, 3, 3, -3, -2), S(1, 3, 2, -3)),
+        gifts: G({ 1: ["Humbaba's Escape", "Treeclimber"], 2: ["Lawgiver's Legacy", "Ojas Surge"], 3: ["Cobra's Dance", "Traveler's Tongues"], 4: ["Potter's Clay", "The Paradox of Time"], 5: ["Part the Curtain", "Shiva's Might"] }) },
+      Balam: { animal: "jaguar", rage: 4, willpower: 3, forms: forms(S(2, 1, 2, -1, -1), S(3, 3, 3, -4, Z), S(3, 2, 3, -4, Z), S(2, 3, 2, -3)),
+        gifts: G({ 1: ["Hunter's Mists", "Storm of Pests"], 2: ["Ancestral Wings", "Smoking Mirror"], 3: ["Touch of the Tree-Frog", "Wandering Forest"], 4: ["Jungle's Vengeance", "Vision Cloud"], 5: ["Feed the Gods", "Heal the Wounded Land"] }) },
+      Bubasti: { animal: "mystic Egyptian cat", rage: 1, willpower: 5, forms: forms(S(0, 1, 0, 0, 1), S(1, 3, 1, -2, -3), S(2, 4, 1, -2, Z), S(-1, 4, 1, 0)),
+        gifts: G({ 1: ["Alms to the Poor", "Scholar's Friend"], 2: ["Mousemaze", "Spirit Ward"], 3: ["Banish Cahlash's Brood", "The Many Tongues of Ptah"], 4: ["Shadowplay", "The Scarab's Flight"], 5: ["Deny the Hungry", "Spirit Wall"], 6: ["The Fleeing Scarab"] }) },
+      Ceilican: { animal: "faerie cat", rage: 3, willpower: 3, forms: forms(S(0, 2, 1, 0, 1), S(1, 3, 1, 0, -2), S(0, 4, 1, -2, -2), S(-1, 4, 0, -2)),
+        note: "Ceilican change Pryio unpredictably.",
+        gifts: G({ 1: ["Mother's Blessing/Curse", "Satyr's Wisdom"], 2: ["Banish Burning", "Sorcerer's Blade"], 3: ["Data Flow", "Phantasm"], 4: ["Monkey's Uncle", "Small Cousin"], 5: ["Chariot of Lions", "The Madness of Crowds"] }) },
+      Khan: { animal: "tiger", rage: 5, willpower: 2, forms: forms(S(2, 1, 2, -1, -1), S(3, 2, 3, -3, Z), S(4, 2, 3, -3, Z), S(2, 2, 3, -3)),
+        gifts: G({ 1: ["Rhino's Favor", "Skin of Jade"], 2: ["Heart of Fury", "Ricepaper Walk"], 3: ["Maker's Charm", "Paws of the Raging Spirit Tiger"], 4: ["Asuras' Bane", "Dragonroar"], 5: ["Call to Battle", "Thousand-Thunder Strike"] }) },
+      Pumonca: { animal: "cougar", rage: 3, willpower: 4, forms: forms(S(1, 2, 2, -1, 0), S(3, 3, 4, -3, Z), S(3, 3, 3, -3, Z), S(2, 3, 3, 0)),
+        gifts: G({ 1: ["Mockingbird's Mirror", "Wanderer's Boon"], 2: ["Raincalling", "Stonework"], 3: ["Bayou Shambler", "Thunderbolt"], 4: ["Element-Folk Favor", "The Hungry Earth"], 5: ["Earthspeaking", "Thunderbird's Cry"], 6: ["Earthquake"] }) },
+      Qualmi: { animal: "lynx", rage: 2, willpower: 5, forms: forms(S(0, 2, 0, 0, 1), S(1, 3, 1, -2, Z), S(1, 4, 1, -2, Z), S(0, 4, 0, -2)),
+        gifts: G({ 1: ["Breakfast of Stones", "Turned Fur"], 2: ["No Hidden Thing", "Wind from the West"], 3: ["Drop of Sea", "Nighttime Web"], 4: ["Dancing on Air", "Still Breeze Blowing"], 5: ["Call Down the Stars", "Water's Vision"] }) },
+      Simba: { animal: "lion", rage: 5, willpower: 2, forms: forms(S(2, 1, 2, -1, 1), S(3, 2, 3, -2, Z), S(3, 2, 3, -2, Z), S(3, 3, 2, -1)),
+        gifts: G({ 1: ["Majesty", "Submit"], 2: ["Armor of Kings", "Rallying Challenge"], 3: ["Fireroar", "Shadow the Moon's Light"], 4: ["King of Beasts", "The Bountiful Dominion"], 5: ["Command the Multitude", "Rising Sun"], 6: ["Royal Privilege"] }) },
+      Swara: { animal: "cheetah", rage: 2, willpower: 4, forms: forms(S(1, 2, 1, -1, 0), S(2, 4, 3, -3, Z), S(2, 4, 3, -3, Z), S(1, 4, 2, -3)),
+        gifts: G({ 1: ["Diamond Claws", "Impala's Flight"], 2: ["Walking Between Worlds", "Weight of a Heart"], 3: ["Clearwater Passage", "Dance of the Chaya"], 4: ["Ghost Caress", "Judgment of Pestilence"], 5: ["All Beasts Under the Sun", "River of Blood"] }) },
+    },
+
+    // Total permanent Renown needed for each Rank (p. 89), any mix of the three.
+    renownByRank: [3, 10, 15, 20, 25],
+    rankTitles: ["Tekhmet", "Aka", "Tilau", "Ilani", "Bon Bhat"],
+    renownNames: ["Cleverness", "Ferocity", "Honor"],
+
+    backgrounds: ["Allies", "Contacts", "Den-Realm", "Jamak", "Kinfolk", "Mentor", "Pure Breed", "Resources", "Rites", "Secrets", "Trinket"],
+    felineAvoids: ["Computer", "Drive", "Firearms", "Law", "Politics", "Science", "Etiquette"],
+
+    // Garou Merits & Flaws the Bastet book calls inappropriate (p. 79), plus wolf-only ones.
+    forbidden: ["Ancestor Ally", "Insane Past Life", "Insane Ancestor", "Slip Sideways", "Pack Mentality", "Wolf Years", "Wolf Sight", "Fair Glabro", "Metis Child", "Foe from the Past"],
+
+    metisDeformities: ["Albinism", "Blind in one eye", "Cleft palate", "Deaf", "Hairless patches", "Hunchback", "Lame leg", "Missing tail", "Mute", "Seizures", "Sickly", "Strange odor", "Twisted limb", "Withered arm"],
+
+    concepts: ["Artist", "Loner", "Native hunter", "Professional", "Scholar", "Searcher", "Sneak", "Thrill-seeker", "Vagabond", "Warrior"],
+    felineConcepts: ["Escaped zoo cat", "Jungle hunter", "Mountain loner", "Riddling wanderer", "Territorial queen", "Restless young cat"],
+    names: {
+      female: ["Amara", "Chandra", "Esme", "Ines", "Leila", "Marisol", "Priya", "Selene", "Yara", "Zuri"],
+      male: ["Bastien", "Dario", "Farid", "Jahi", "Kiran", "Nkosi", "Omar", "Rafael", "Tariq"],
+      last: ["Abara", "Bose", "Castillo", "Darius", "Ekwueme", "Farouk", "Ghosh", "Herrera", "Iyer", "Kamara", "Lopez", "Mbeki", "Nair", "Okoro", "Quispe", "Rahman", "Silva", "Tembo"],
+      feline: ["Amber-Eyes", "Quiet-Paw", "Night-Stalker", "Sun-on-Stone", "Tall-Grass", "Silent-Leap", "Moon-Whisker", "Dust-Walker", "Shadow-Tail", "River-Crosser"],
+    },
+  };
+  // Extra Gifts listed in the Players Guide to the Changing Breeds (Revised) that the breedbook lacks.
+  BOOKS.PGCB = "Players Guide to the Changing Breeds";
+  const pgcb = {
+    Homid: { 5: ["Madness"] },
+    Feline: { 1: ["Heightened Senses", "Pounce"], 4: ["Beast Life"] },
+    Bagheera: { 3: ["Eye of the Cobra"] },
+    Balam: { 2: ["Perfect Cover", "Terrors"] },
+    Bubasti: { 5: ["Shadow Brethren"] },
+    Khan: { 1: ["Razor Claws"], 2: ["Snarl of the Predator"] },
+    Pumonca: { 2: ["Speak With Wind Spirits", "Spirit of the Fish"], 4: ["Call Elemental"] },
+    Qualmi: { 3: ["Wisdom of the Ancient Ways"], 4: ["Chill of Early Frost"] },
+    Simba: { 5: ["Obedience"] },
+    Swara: { 2: ["Sense the Unnatural"], 4: ["Speed Beyond Thought"] },
+  };
+  for (const [name, byLevel] of Object.entries(pgcb)) (DATA.breeds[name] || DATA.tribes[name]).gifts.extra.PGCB = byLevel;
+
+  window.BASTET_DATA = DATA;
+
+  const physSoc = ["Strength", "Dexterity", "Stamina", "Manipulation", "Appearance"];
+
+  function mfLists() {
+    const W = window.WEREWOLF_DATA;
+    const ok = (x) => !x[3] && !DATA.forbidden.includes(x[0]);
+    return { merits: W.merits.filter(ok), flaws: W.flaws.filter(ok), randomSkip: W.randomSkip, lupusSkip: W.lupusSkip };
+  }
+
+  function generate(opts) {
+    const rank = Math.min(5, Math.max(1, Number(opts.rank) || 1));
+    const freebieTotal = Number.isFinite(opts.freebies) ? opts.freebies : 15;
+    const coreOnly = opts.books === "Core book only";
+
+    const breed = opts.breed || R.pick(Object.keys(DATA.breeds));
+    const pryio = opts.pryio || R.pick(Object.keys(DATA.pryio));
+    const tribe = opts.tribe || R.pick(Object.keys(DATA.tribes));
+    const b = DATA.breeds[breed];
+    const t = DATA.tribes[tribe];
+    const notes = t.note ? [t.note] : [];
+    const gender = F.pickGender(opts);
+
+    const { attrs, priority: attrPriority } = F.attributes();
+    const { abil, priority: abilPriority, ok: abilityOk } = F.abilities(breed === "Feline" ? DATA.felineAvoids : []);
+    const { bg, allowed: bgAllowed } = F.backgrounds(DATA.backgrounds, breed === "Feline" ? ["Resources"] : []);
+
+    // Three Level 1 Gifts from General, Breed and Tribe "in any combination" (p. 90);
+    // then one Gift of each new level for every Rank above 1.
+    const picker = F.giftPicker([[DATA.general, "General"], [b.gifts, breed], [t.gifts, tribe]], coreOnly);
+    for (let i = 0; i < 3; i++) picker.take(1, null);
+    for (let lvl = 2; lvl <= rank; lvl++) picker.take(lvl, null);
+
+    const adv = { Rage: t.rage, Gnosis: b.gnosis, Willpower: t.willpower };
+    const renown = F.renown(DATA.renownNames, DATA.renownByRank[rank - 1]);
+
+    const mfData = mfLists();
+    const rollable = (mf) =>
+      !mfData.randomSkip.includes(mf[0]) &&
+      !(breed === "Feline" && mfData.lupusSkip.includes(mf[0])) &&
+      (!coreOnly || mf[2] === "Core");
+    const mf = F.meritsFlaws(mfData, freebieTotal, rollable, opts.meritsFlaws !== "No");
+    const fr = F.spendFreebies({ attrs, abil, abilityOk, bg, bgAllowed, adv, picker }, mf.freebies);
+
+    const name = breed === "Feline" ? R.pick(DATA.names.feline) : `${F.firstName(DATA.names, gender)} ${R.pick(DATA.names.last)}`;
+    const extras = [];
+    if (breed === "Metis") extras.push({ title: "Metis Deformity", text: R.pick(DATA.metisDeformities) });
+    extras.push({ title: `Pryio: ${pryio}`, text: DATA.pryio[pryio] });
+
+    const others = [
+      ...Object.entries(DATA.breeds).filter(([n]) => n !== breed).map(([n, v]) => [`${n} (other breed)`, n, v.gifts]),
+      ...Object.entries(DATA.tribes).filter(([n]) => n !== tribe).map(([n, v]) => [`${n} (other tribe)`, n, v.gifts]),
+    ];
+
+    return F.sheet({
+      game: "Bastet",
+      name,
+      header: [
+        ["Name", name], ["Player", ""], ["Chronicle", ""],
+        ["Breed", breed], ["Pryio", pryio], ["Tribe", `${tribe} (${t.animal})`],
+        ["Nature", R.pick(F.ARCHETYPES)], ["Demeanor", R.pick(F.ARCHETYPES)], ["Concept", breed === "Feline" ? R.pick(DATA.felineConcepts) : R.pick(DATA.concepts)],
+        ["Gender", gender], ["Rank", `${rank} (${DATA.rankTitles[rank - 1]})`], ["Pride", ""],
+        ["Taghairm", ""], ["Den-Realm", ""], ["Jamak", ""],
+      ],
+      attrs, attrPriority, abil, abilPriority,
+      bg, bgList: DATA.backgrounds,
+      gifts: picker.gifts,
+      giftOptions: F.giftOptions([[`General`, "General", DATA.general], [`${breed} (breed)`, breed, b.gifts], [`${tribe} (tribe)`, tribe, t.gifts]], others),
+      rank, renown,
+      merits: mf.merits, flaws: mf.flaws, mfData, mfOwn: tribe,
+      adv,
+      formColumns: ["Form", ...physSoc],
+      formRows: F.formRows(t.forms, attrs, physSoc),
+      extras, notes,
+      freebieTotal, spent: fr.spent, leftover: fr.left,
+      books: BOOKS,
+      tribe,
+      build: {
+        avoid: breed === "Feline" ? DATA.felineAvoids : [],
+        noBg: breed === "Feline" ? ["Resources"] : [],
+        giftHint: `Three Level 1 Gifts in any mix from the General, ${breed} (breed) and ${tribe} (tribe) lists${rank > 1 ? `, plus one Gift of each Level from 2 to ${rank}` : ""}.`,
+      },
+    });
+  }
+
+  function recompute(c) {
+    const tribe = Object.keys(DATA.tribes).find((t) => c.header.find((h) => h[0] === "Tribe")[1].startsWith(t));
+    c.table.rows = F.formRows(DATA.tribes[tribe || "Bagheera"].forms, F.attrsFromSheet(c), physSoc);
+  }
+
+  WOD.registerGame({
+    id: "bastet",
+    label: "Bastet (werecats)",
+    options: [
+      { id: "breed", label: "Breed", choices: Object.keys(DATA.breeds) },
+      { id: "pryio", label: "Pryio", choices: Object.keys(DATA.pryio) },
+      { id: "tribe", label: "Tribe", choices: Object.keys(DATA.tribes) },
+      { id: "gender", label: "Gender", choices: ["Female", "Male"] },
+      { id: "rank", label: "Rank", choices: [1, 2, 3, 4, 5], default: 1, random: false },
+      { id: "freebies", label: "Freebie points", type: "number", min: 0, max: 500, default: 15 },
+      { id: "meritsFlaws", label: "Merits & Flaws", choices: ["Random", "No"], default: "Random", random: false },
+      { id: "books", label: "Books", choices: ["All my books", "Core book only"], default: "All my books", random: false },
+    ],
+    generate,
+    recompute,
+  });
+})();
+
+</script>
+  <script>
+/*
+  Mokolé (weresaurians) for Werewolf: the Apocalypse.
+
+  SOURCE: the Mokolé breedbook PDF in the owner's library ("Core" for this game):
+  creation summary p. 47, breeds/auspices/streams Chapter "Noonday", forms and
+  varna p. 38-39, Renown charts p. 44-45, Gifts "Evening: Dragon Eye",
+  Merits & Flaws near the end of the book.
+*/
+(function () {
+  const R = WOD.random;
+  const F = WOD.fera;
+  const G = F.G;
+
+  const BOOKS = { Core: "Breedbook: Mokolé" };
+
+  // Seven solar auspice Gift lists (headings name the matching seasonal auspices).
+  const SUN_GIFTS = {
+    Rising: G({ 1: ["Bellow", "Eye of the Raptor", "Master of Fire"], 2: ["Paint the Meadows", "Sense Silver"], 3: ["Call the Tides", "Combat Healing", "Dragon's Tongue", "Hot Ichor", "Lash of Ages", "Might of the Kings"], 4: ["Anger of the Wani", "Scream of Gaia"], 5: ["Jointsnake's Mojo", "Wall of Granite"] }),
+    Noonday: G({ 1: ["Fangs of Judgment", "Gold Claws", "Persuasion", "Truth of Olodumare"], 2: ["Calm", "Strength of Purpose", "Tame Sunbeam"], 3: ["Clear Mind", "Dragon's Tongue", "Eye of the Cobra", "Weak Arm"], 4: ["Raptor's Gaze", "Strength of the Dominator"], 5: ["Geas", "Sleep of the Dragon", "Wisdom of the Sun"] }),
+    Setting: G({ 1: ["Burrow", "Mother's Touch", "Resist Pain"], 2: ["Clap of Thunder", "Paint the Meadows", "Rage of the Nest Mother", "Warding Dance"], 3: ["Armor of the Tortoise", "Clarity", "Combat Healing", "Might of the Kings"], 4: ["Clenched Jaw", "Hand of the Earth Lords", "Hot Ichor"], 5: ["Fossilize", "Halo of the Sun"] }),
+    Shrouded: G({ 1: ["Call the Rain", "Mother's Touch", "Sense Designer", "Sense Magic", "Spirit Speech"], 2: ["Become Log", "Breaking the Tomorrow Wall", "Command Spirit", "Dream the Matre's Mind", "Send the Dream", "Walking Between Worlds"], 3: ["Call Water Spirit", "Deeper Lungs", "Exorcism", "Open Sun Bridge", "Shadow Wings", "Umbral Shadow Wings"], 4: ["Grasp the Beyond", "Living Treasure", "Recapitulate", "Walk the Matre's Mind"], 5: ["Gorgon's Gaze", "Malleable Spirit"] }),
+    Midnight: G({ 1: ["Brother's Scent", "Darksight", "Lambent Flame", "Sense Sun", "Spirits of Laughter"], 2: ["Breaking the Tomorrow Wall", "Dreamspeak", "Glib Tongue"], 3: ["Become Log", "Invisibility", "Open Sun Bridge"], 4: ["Fool's Luck", "Shadows by the Firelight"], 5: ["Sleep of the Dragon", "Steal Shape", "Take the True Form", "Thousand Forms"] }),
+    Decorated: G({ 1: ["Cooking", "Mercy", "Mother's Touch", "Pack Tactics", "Persuasion", "Pilot Snake", "Wind Beneath my Wings"], 2: ["Call to Duty", "Command the Gathering", "Dragon Drill", "Walking Between Worlds"], 3: ["Long Running", "Reshape Object"], 4: ["Infest", "Shadows by the Firelight", "Strength of the Dominator"], 5: ["Calm the Flock", "Chaos Mechanics", "Obedience"] }),
+    Eclipsed: G({ 1: ["Aura of Confidence", "Bellow", "Heightened Senses", "Lambent Flame"], 2: ["Awe", "Dazzle", "Walking Between Worlds"], 3: ["Dragon-King's Majesty", "Eye of the Cobra", "Hot Ichor", "Wrath of the Dragon"], 4: ["Mastery", "Sun Enfleshed"], 5: ["Army of the Ancestors", "Dream Semblance", "Halo of the Sun", "Stop Continental Drift"] }),
+  };
+
+  // Renown charts (p. 44): Glory/Honor/Wisdom per Rank, or a total for Shining.
+  const chart = (g, h, w) => [[1, 1, 1], [g[0], h[0], w[0]], [g[1], h[1], w[1]], [g[2], h[2], w[2]], [g[3], h[3], w[3]]].map(([Glory, Honor, Wisdom]) => ({ Glory, Honor, Wisdom }));
+  const CHARTS = {
+    glory: chart([4, 6, 8, 10], [2, 3, 4, 5], [2, 3, 4, 5]),
+    honor: chart([2, 3, 4, 5], [4, 6, 8, 10], [2, 3, 4, 5]),
+    wisdom: chart([2, 3, 4, 5], [2, 3, 4, 5], [4, 6, 8, 10]),
+    total: [3, 9, 14, 19, 24],
+  };
+
+  const DATA = {
+    books: BOOKS,
+    breeds: {
+      Homid: { gnosis: 2 },
+      Suchid: { gnosis: 4 },
+    },
+    // Solar auspices (Gumagan and Mokolé-mbembe).
+    solar: {
+      "Rising Sun": { title: "Striking", willpower: 3, gifts: "Rising", renown: "glory" },
+      "Noonday Sun": { title: "Unshading", willpower: 5, gifts: "Noonday", renown: "honor" },
+      "Setting Sun": { title: "Warding", willpower: 3, gifts: "Setting", renown: "glory" },
+      "Shrouded Sun": { title: "Concealing", willpower: 4, gifts: "Shrouded", renown: "wisdom" },
+      "Midnight Sun": { title: "Shining", willpower: 4, gifts: "Midnight", renown: "total" },
+      "Decorated Sun": { title: "Gathering", willpower: 5, gifts: "Decorated", renown: "wisdom" },
+      "Eclipsed Sun": { title: "Crowning", willpower: 5, gifts: "Eclipsed", renown: "honor" },
+    },
+    // Seasonal auspices. Renown follows the matching Garou auspice (p. 45).
+    makara: {
+      Hemanta: { title: "winter; tricksters", willpower: 2, gifts: "Midnight", garou: "Ragabash" },
+      Zarad: { title: "autumn; mystics", willpower: 3, gifts: "Shrouded", garou: "Theurge" },
+      Grisma: { title: "summer; judges", willpower: 4, gifts: "Decorated", garou: "Philodox" },
+      Vasanta: { title: "spring; warriors", willpower: 5, gifts: "Rising", garou: "Ahroun" },
+    },
+    zhongLung: {
+      "Tung Chun": { title: "spring; warriors and lovers", rage: 4, gifts: "Setting", garou: "Ahroun" },
+      "Nam Hsia": { title: "summer; judges", rage: 3, gifts: "Noonday", garou: "Philodox" },
+      "Sai Chau": { title: "autumn; seers and scholars", rage: 2, gifts: "Eclipsed", garou: "Theurge" },
+      "Pei Tung": { title: "winter; jokers and tricksters", rage: 1, gifts: "Midnight", garou: "Ragabash" },
+    },
+    streams: {
+      Gumagan: { place: "Australia", auspices: "solar", varna: ["Karna", "Ora"], gills: true,
+        gifts: G({ 1: ["Songlines"], 2: ["Dreamwalk"], 3: ["Bunyip's Boom", "Landspeak"], 4: ["Nightmare Mnesis"], 5: ["Billabong Walk", "Bloody-Mindedness"] }) },
+      Makara: { place: "India", auspices: "makara", varna: ["Gharial", "Makara", "Karna"],
+        gifts: G({ 3: ["The Thousand Arrows"], 5: ["Great as a White Hill"] }) },
+      "Mokolé-mbembe": { place: "Africa and the Americas", auspices: "solar", varna: ["Halpatee", "Piasa", "Champsa", "Syrta", "Unktehi"],
+        gifts: G({ 3: ["Beak of the Finch", "Heat Wave"], 4: ["Walk into My Eyes"] }) },
+      "Zhong Lung": { place: "East Asia", auspices: "zhongLung", varna: ["Makara", "Karna", "Ora"], willpower: 4,
+        gifts: G({ 1: ["Chi'ih Ming", "Dragon Milk", "Shou"], 2: ["Clap of Thunder"], 3: ["Send the Dream", "The Dragon's Tongue"], 4: ["Anger of the Wani", "Harmony of the Soul", "Sleep of Hsi Wang Mu"], 5: ["A Thousand Secret Faces"] }) },
+    },
+    // Suchid form and Rage by varna (p. 38).
+    varna: {
+      Champsa: { animal: "Nile crocodile", rage: 3, mods: { Strength: 3, Dexterity: -2, Stamina: 3, Manipulation: -4 } },
+      Gharial: { animal: "gavial", rage: 4, mods: { Strength: 1, Dexterity: -1, Stamina: 3, Manipulation: -4 } },
+      Halpatee: { animal: "American alligator", rage: 4, mods: { Strength: 2, Dexterity: -1, Stamina: 3, Manipulation: -2 } },
+      Karna: { animal: "saltwater crocodile", rage: 3, mods: { Strength: 3, Dexterity: -2, Stamina: 3, Manipulation: -4 } },
+      Makara: { animal: "mugger crocodile / Chinese alligator", rage: 3, mods: { Strength: 1, Dexterity: 0, Stamina: 2, Manipulation: -3 } },
+      Ora: { animal: "monitor lizard", rage: 5, mods: { Strength: 0, Dexterity: 0, Stamina: 2, Manipulation: -4 } },
+      Piasa: { animal: "American crocodile", rage: 4, mods: { Strength: 2, Dexterity: -1, Stamina: 3, Manipulation: -2 } },
+      Syrta: { animal: "caiman", rage: 4, mods: { Strength: 1, Dexterity: -1, Stamina: 3, Manipulation: -4 } },
+      Unktehi: { animal: "Gila monster", rage: 5, mods: { Strength: -1, Dexterity: 0, Stamina: 1, Manipulation: -3 } },
+    },
+    archidMods: { Strength: 4, Dexterity: -1, Stamina: 4, Manipulation: -3 },
+    // Archid Characteristics (p. 38-39). * = may be taken more than once.
+    archid: ["Air Sacs", "Armored Scales*", "Back Sail", "Behemoth*", "Binocular Vision", "Bladed Tail", "Color Change*", "Constricting Coils", "Contact Venom", "Crop", "Deep Lung", "Dragon Mask", "Duck Bill", "Extra Limbs*", "Eye Cones", "Feathers", "Fiery Pearl", "Fins", "Fire Breath*", "Food Storage", "Fur", "Gecko Pads", "Gills", "Grasping Hands", "Hard Skull", "Hinged Jaw", "Hollow Bones", "Horn", "Huge Size", "Jacobson's Organ", "Long Neck", "Long Teeth", "Long Tongue", "Multiple Heads", "Neck Frill", "Nictating Membrane", "Poison Sacs*", "Predator's Roar", "Prehensile Tail", "Regeneration", "Resplendent Crest", "Royal Crest", "Sacral Plexus*", "Sickening Slime", "Snorkel", "Spitter", "Tail Club", "Tall*", "Terrible Claws", "Thorns", "Throat Sac and Wattles", "Tongue Flick", "Upright Walking", "Webbed Feet", "Wings"],
+
+    general: G({
+      1: ["Falling Touch", "Fatal Flaw", "Find Land", "Find Water", "Inspiration", "Razor Claws", "Scent of Sweet Nectar", "Sense Dissolver", "Sense Moon", "Sense Prey", "Shed", "Sight of the True Form", "Speed of Thought", "Tailbiter's Mumble", "Talk"],
+      2: ["Axis Mundi", "Blessings of the Nest", "Reptoid Form", "Sense Gold", "Silver Claws", "Stinking Breath", "Tides of Lust", "Waxwork Monster"],
+      3: ["Bark of the Mudpuppy", "Dragon's Breath", "Dragonfear", "Walking Between Worlds"],
+      4: ["Attunement", "Cocoon", "Serenity", "View the Seed"],
+      5: ["Grasp the Beyond", "Song of the Great Beast"],
+    }),
+
+    rankTitles: ["Hatchling", "Son/Daughter", "Brother/Sister", "Father/Mother", "Grandfather/Grandmother"],
+    backgrounds: ["Allies", "Contacts", "Fetish", "Kinfolk", "Mentor", "Mnesis", "Resources", "Rites", "Totem", "Wallow"],
+    // Suchid limits (breeds section).
+    suchidAvoids: ["Drive", "Etiquette", "Firearms", "Computer", "Law", "Linguistics", "Medicine", "Politics", "Science"],
+    suchidNoBackgrounds: ["Resources", "Allies", "Contacts"],
+
+    // [name, cost, book, stream limit]
+    merits: [
+      ["Bird-spirit Companion", 1], ["Manshape", 1], ["Mnesis of the Lost Ones", 1], ["Terrible Footsteps", 1], ["Yathamaya", 1], ["Bite of the Monitor", "1-5"],
+      ["Retain Eggs", 2], ["Retain Seed", 2], ["Temperature Control", 2], ["Farm Ties", 3], ["Sacred Crocodile", 3], ["Eidetic Memory", 5], ["Gold Tolerance", 5],
+      ["Backwards Mnesis", 7], ["Color Change", 7], ["Silver Tolerance", 7], ["Step Sideways", 7], ["Veiled to Garou", 7],
+      ["Song Owner", 1, "Core", "Gumagan"], ["High Caste", 1, "Core", "Makara"], ["Char", 3, "Core", "Makara"], ["Same-bito Kin", 1, "Core", "Zhong Lung"],
+    ].map(([n, c, b = "Core", s]) => (s ? [n, c, b, s] : [n, c, b])),
+    flaws: [
+      ["Albino", 1], ["Deaf", 1], ["Diurnal", 1], ["Migratory Urges", 1], ["Molt", 1], ["Monogamous", 1], ["Scavenger", 1], ["Slime", 1], ["Small", 1], ["Speechless", 1],
+      ["Bad Mnesis", "2-5"], ["Cold-blooded", 2], ["Dream Hunter", 2], ["Exclusive Herbivore", 2], ["Infamous Elder/Clutch", "2-4"], ["Insane Elder", 2], ["Stench", 2], ["Sterile/Barren", 2], ["Wall Eye", 2],
+      ["Eyes of the Tyrant", 3], ["Fallen Elder/Clutch", "3-5"], ["Hunted", 3], ["Limbless", 4], ["Great Fossil Lizard", 5],
+      ["Fear of Iron", 1, "Core", "Zhong Lung"], ["Fertile Essence", 1, "Core", "Zhong Lung"], ["Stone Blind", 2, "Core", "Zhong Lung"],
+    ].map(([n, c, b = "Core", s]) => (s ? [n, c, b, s] : [n, c, b])),
+    randomSkip: ["Retain Eggs", "Retain Seed", "Insane Elder"],
+
+    names: {
+      female: ["Adaeze", "Amaka", "Esi", "Ifeoma", "Lien", "Mei", "Nandi", "Yindi"],
+      male: ["Bao", "Chidi", "Dinh", "Hiroshi", "Jarrah", "Kwame", "Obi", "Ravi", "Sanjay", "Tao", "Uzoma", "Wei"],
+      last: ["Adeyemi", "Banerjee", "Chen", "Diallo", "Eze", "Huang", "Iyer", "Juma", "Kaur", "Liu", "Mensah", "Nguyen", "Obi", "Patel", "Rao", "Sato", "Tan", "Wong"],
+      suchid: ["Old-Stone-Tooth", "Sun-on-the-Bank", "Deep-River-Waiting", "Mud-Sleeper", "Long-Smile", "Still-Water", "Basks-at-Noon", "Ancient-Eye", "Reed-Hider", "Slow-Thunder"],
+    },
+    concepts: ["Antiquarian", "Crocodile farmer", "Fisherman", "Folklorist", "Hermit", "Museum curator", "Park ranger", "Priest", "River guide", "Storyteller", "Swamp hunter", "Zoo keeper"],
+    suchidConcepts: ["Old river lord", "Swamp hunter", "Wallow guardian", "Wanderer of the waters", "Young hatchling", "Basking dreamer"],
+  };
+  // Extra Gifts from the Players Guide to the Changing Breeds (Revised).
+  BOOKS.PGCB = "Players Guide to the Changing Breeds";
+  SUN_GIFTS.Noonday.extra.PGCB = { 4: ["Serenity"] };
+  SUN_GIFTS.Midnight.extra.PGCB = { 3: ["Open Moon Bridge"] };
+  SUN_GIFTS.Shrouded.extra.PGCB = { 1: ["Sense Dissolver"] };
+
+  window.MOKOLE_DATA = DATA;
+
+  const physSoc = ["Strength", "Dexterity", "Stamina", "Manipulation", "Appearance"];
+
+  function auspiceTable(streamName) {
+    const kind = DATA.streams[streamName].auspices;
+    return DATA[kind];
+  }
+
+  function formsFor(varnaName) {
+    return [
+      { name: "Homid", mods: {} },
+      { name: "Archid", mods: DATA.archidMods, zero: ["Appearance"] },
+      { name: `Suchid (${varnaName})`, mods: DATA.varna[varnaName].mods },
+    ];
+  }
+
+  function generate(opts) {
+    const rank = Math.min(5, Math.max(1, Number(opts.rank) || 1));
+    const freebieTotal = Number.isFinite(opts.freebies) ? opts.freebies : 15;
+
+    const breed = opts.breed || R.pick(Object.keys(DATA.breeds));
+    const streamName = opts.stream || R.pick(Object.keys(DATA.streams));
+    const stream = DATA.streams[streamName];
+    const table = auspiceTable(streamName);
+    // The page's Auspice list mixes all three systems; use it only if it fits this stream.
+    const auspice = opts.auspice && table[opts.auspice] ? opts.auspice : R.pick(Object.keys(table));
+    const a = table[auspice];
+    const varnaName = opts.varna || R.pick(stream.varna);
+    const v = DATA.varna[varnaName];
+    const notes = [];
+    const gender = F.pickGender(opts);
+    if (opts.auspice && !table[opts.auspice]) notes.push(`${opts.auspice} isn't a ${streamName} auspice, so ${auspice} was rolled instead.`);
+    if (!stream.varna.includes(varnaName)) notes.push(`${varnaName} is uncommon among the ${streamName}.`);
+
+    const { attrs, priority: attrPriority } = F.attributes();
+    const { abil, priority: abilPriority, ok: abilityOk } = F.abilities(breed === "Suchid" ? DATA.suchidAvoids : []);
+    const { bg, allowed: bgAllowed } = F.backgrounds(DATA.backgrounds, breed === "Suchid" ? DATA.suchidNoBackgrounds : []);
+
+    // One auspice Gift and one general Gift; one more of each new level per Rank.
+    const auspiceGifts = SUN_GIFTS[a.gifts];
+    const picker = F.giftPicker([[auspiceGifts, auspice], [DATA.general, "General"], [stream.gifts, streamName]], opts.books === "Core book only");
+    picker.take(1, auspice);
+    picker.take(1, "General");
+    for (let lvl = 2; lvl <= rank; lvl++) picker.take(lvl, null);
+
+    // Rage by varna (by auspice for Zhong Lung); Willpower by auspice (4 for Zhong Lung).
+    const adv = {
+      Rage: stream.auspices === "zhongLung" ? a.rage : v.rage,
+      Gnosis: DATA.breeds[breed].gnosis,
+      Willpower: stream.willpower || a.willpower,
+    };
+
+    const need = a.garou ? window.WEREWOLF_DATA.renownByRank[a.garou][rank - 1] : (a.renown === "total" ? CHARTS.total[rank - 1] : CHARTS[a.renown][rank - 1]);
+    const renown = F.renown(["Glory", "Honor", "Wisdom"], need);
+
+    const rollable = (mf) => !DATA.randomSkip.includes(mf[0]) && (!mf[3] || mf[3] === streamName);
+    const mf = F.meritsFlaws(DATA, freebieTotal, rollable, opts.meritsFlaws !== "No");
+    const fr = F.spendFreebies({ attrs, abil, abilityOk, bg, bgAllowed, adv, picker }, mf.freebies);
+
+    // Archid Characteristics: as many points as final Gnosis (Gumagan also have Gills).
+    const chars = stream.gills ? ["Gills"] : [];
+    for (let i = 0; i < adv.Gnosis; i++) {
+      const pool = DATA.archid.filter((c) => c.endsWith("*") || !chars.includes(c));
+      chars.push(R.pick(pool).replace("*", ""));
+    }
+    const charCounts = {};
+    chars.forEach((c) => (charCounts[c] = (charCounts[c] || 0) + 1));
+    const charList = Object.entries(charCounts).map(([c, n]) => (n > 1 ? `${c} ×${n}` : c));
+    if (stream.gills) notes.push("All Gumagan have Gills for free.");
+
+    const name = breed === "Suchid" ? R.pick(DATA.names.suchid) : `${F.firstName(DATA.names, gender)} ${R.pick(DATA.names.last)}`;
+    const auspiceText = a.title ? `${auspice} (${a.title})` : auspice;
+
+    const allAuspices = [
+      ...Object.entries(DATA.solar).map(([n, x]) => [n, x.gifts]),
+    ];
+    const others = [
+      ...allAuspices.filter(([n, key]) => key !== a.gifts).map(([n, key]) => [`${n} (other auspice)`, n, SUN_GIFTS[key]]),
+      ...Object.entries(DATA.streams).filter(([n]) => n !== streamName).map(([n, s]) => [`${n} (other stream)`, n, s.gifts]),
+    ];
+
+    return F.sheet({
+      game: "Mokolé",
+      name,
+      header: [
+        ["Name", name], ["Player", ""], ["Chronicle", ""],
+        ["Breed", breed], ["Auspice", auspiceText], ["Stream", `${streamName} (${stream.place})`],
+        ["Nature", R.pick(F.ARCHETYPES)], ["Demeanor", R.pick(F.ARCHETYPES)], ["Concept", breed === "Suchid" ? R.pick(DATA.suchidConcepts) : R.pick(DATA.concepts)],
+        ["Rank", `${rank} (${DATA.rankTitles[rank - 1]})`], ["Varna", `${varnaName} (${v.animal})`], ["Gender", gender],
+        ["Clutch", ""], ["Totem", ""], ["Notes", ""],
+      ],
+      attrs, attrPriority, abil, abilPriority,
+      bg, bgList: DATA.backgrounds,
+      gifts: picker.gifts,
+      giftOptions: F.giftOptions([[`${auspice} (auspice)`, auspice, auspiceGifts], ["General", "General", DATA.general], [`${streamName} (stream)`, streamName, stream.gifts]], others),
+      rank, renown,
+      extraColumns: [{
+        title: "Archid Form",
+        columns: [{
+          title: `Archid Characteristics (points = Gnosis ${adv.Gnosis})`,
+          list: charList,
+          listOptions: [{ options: DATA.archid.map((c) => c.replace("*", "")) }],
+          allowCustom: true,
+          addLabel: "Add characteristic",
+          customPrompt: "Archid characteristic:",
+        }],
+      }],
+      merits: mf.merits, flaws: mf.flaws, mfData: DATA, mfOwn: streamName,
+      adv,
+      formColumns: ["Form", ...physSoc],
+      formRows: F.formRows(formsFor(varnaName), attrs, physSoc),
+      notes,
+      freebieTotal, spent: fr.spent, leftover: fr.left,
+      books: BOOKS,
+      build: {
+        avoid: breed === "Suchid" ? DATA.suchidAvoids : [],
+        noBg: breed === "Suchid" ? DATA.suchidNoBackgrounds : [],
+        giftHint: `One Level 1 Gift from your auspice (${auspice}) and one from the General list${rank > 1 ? `, plus one Gift of each Level from 2 to ${rank}` : ""}.`,
+      },
+    });
+  }
+
+  function recompute(c) {
+    const varnaText = c.header.find((h) => h[0] === "Varna")[1];
+    const varnaName = Object.keys(DATA.varna).find((n) => varnaText.startsWith(n)) || "Karna";
+    c.table.rows = F.formRows(formsFor(varnaName), F.attrsFromSheet(c), physSoc);
+  }
+
+  WOD.registerGame({
+    id: "mokole",
+    label: "Mokolé (weresaurians)",
+    options: [
+      { id: "breed", label: "Breed", choices: Object.keys(DATA.breeds) },
+      { id: "stream", label: "Stream", choices: Object.keys(DATA.streams) },
+      { id: "auspice", label: "Auspice", choices: [...Object.keys(DATA.solar), ...Object.keys(DATA.makara), ...Object.keys(DATA.zhongLung)] },
+      { id: "varna", label: "Varna", choices: Object.keys(DATA.varna) },
+      { id: "gender", label: "Gender", choices: ["Female", "Male"] },
+      { id: "rank", label: "Rank", choices: [1, 2, 3, 4, 5], default: 1, random: false },
+      { id: "freebies", label: "Freebie points", type: "number", min: 0, max: 500, default: 15 },
+      { id: "meritsFlaws", label: "Merits & Flaws", choices: ["Random", "No"], default: "Random", random: false },
+      { id: "books", label: "Books", choices: ["All my books", "Core book only"], default: "All my books", random: false },
+    ],
+    generate,
+    recompute,
+  });
+})();
+
+</script>
+  <script>
+/*
+  The other Changing Breeds: Ajaba, Ananasi, Corax, Gurahl, Kitsune, Nagah,
+  Nuwisha, Ratkin, Rokea.
+
+  SOURCE ("Core" for these games): Players Guide to the Changing Breeds (Revised),
+  Chapter Two. The book is a scan; text came from OCR and every creation summary
+  and form table was read from page images. Gift names come from OCR and may
+  contain an occasional misread letter.
+
+  The book gives each race's Renown categories but not how much Renown each
+  Rank needs; where noted, the Garou "any mix" totals (3/7/13/19/25) are used.
+
+  Each race is plain data handed to WOD.fera.simpleGame (see fera.js).
+*/
+(function () {
+  const F = WOD.fera;
+  const G = F.G;
+  const W = window.WEREWOLF_DATA;
+  const BOOKS = { Core: "Players Guide to the Changing Breeds", PGG: "Players Guide to Garou", WPG: "Werewolf Players Guide" };
+  const copy = (set) => F.mergeSets(set); // core-only copy, so Garou data isn't changed
+  const TOTALS = [3, 7, 13, 19, 25];
+  const GENERIC_BG = ["Allies", "Ancestors", "Contacts", "Fetish", "Kinfolk", "Mentor", "Pure Breed", "Resources", "Rites", "Totem"];
+  const NOT_WOLF = ["Wolf Sight", "Wolf Years", "Fair Glabro", "Pack Mentality", "Ancestor Ally", "Insane Ancestor", "Metis Child", "Sign of the Wolf", "Foe from the Past"];
+  const LUPUS_AVOID = W.lupusAvoids;
+  const people = {
+    female: ["Ada", "Carmen", "Elena", "Grace", "Iris", "Kemi", "Maya", "Oona", "Paz", "Sana", "Vera"],
+    male: ["Ben", "Dev", "Femi", "Hugo", "Jonah", "Luis", "Nico", "Rui", "Theo"],
+    last: ["Abebe", "Brandt", "Castro", "Dube", "Ellison", "Fujita", "Grey", "Holm", "Ibarra", "Joshi", "Khan", "Laine", "Moss", "Ndiaye", "Ortiz", "Park", "Quinn", "Reed", "Sousa", "Vale"],
+  };
+  const CONCEPTS = ["Activist", "Artist", "Courier", "Drifter", "Ex-soldier", "Healer", "Investigator", "Mechanic", "Musician", "Scholar", "Street hustler", "Wilderness guide"];
+  const form = (name, mods = {}, opts = {}) => ({ name, mods, zero: opts.zero || [], diff: opts.diff });
+  const S = (Str, Dex, Sta, Man, App) => Object.fromEntries(Object.entries({ Strength: Str, Dexterity: Dex, Stamina: Sta, Manipulation: Man, Appearance: App }).filter(([, v]) => v !== undefined && v !== 0));
+
+  // ---------------------------------------------------------------- Ajaba (werehyenas), p. 36-41
+  F.simpleGame({
+    id: "ajaba", label: "Ajaba (werehyenas)", game: "Ajaba", books: BOOKS, gender: true,
+    breeds: {
+      Homid: { gnosis: { Female: 1, Male: 3 }, start: ["Master of Fire", "Smell of Man"], gifts: copy(W.breeds.Homid.gifts) },
+      Metis: { gnosis: 3, start: ["Primal Anger", "Sense Wyrm"], gifts: copy(W.breeds.Metis.gifts), deformity: true, note: "Ajaba metis are usually hermaphroditic and lack the gender-based Rage/Gnosis differences." },
+      Hyaena: { gnosis: { Female: 3, Male: 5 }, start: ["Heightened Senses", "Sense Prey"], gifts: copy(W.breeds.Lupus.gifts), animal: true },
+    },
+    groupA: {
+      label: "Aspect",
+      choices: {
+        Dawn: { rage: { Female: 5, Male: 3, Metis: 4 }, giftsBy: { Female: copy(W.auspices.Ahroun.gifts), Male: copy(W.auspices.Galliard.gifts) },
+          startBy: { Female: ["Falling Touch", "Inspiration", "Razor Claws"], Male: ["Beast Speech", "Call of the Wyld", "Mindspeak"], Metis: ["Falling Touch", "Inspiration", "Razor Claws", "Beast Speech", "Call of the Wyld", "Mindspeak"] } },
+        Dusk: { rage: { Female: 3, Male: 1, Metis: 2 }, giftsBy: { Female: copy(W.auspices.Ragabash.gifts), Male: copy(W.auspices.Theurge.gifts) },
+          startBy: { Female: ["Blur of the Milky Eye", "Open Seal", "Scent of Running Water"], Male: ["Mother's Touch", "Sense Wyrm", "Spirit Speech"], Metis: ["Blur of the Milky Eye", "Open Seal", "Scent of Running Water", "Mother's Touch", "Sense Wyrm", "Spirit Speech"] } },
+      },
+    },
+    general: G({ 1: ["Feral Grin", "Gift of Terror", "Primal Anger", "Sense Prey"], 2: ["Crushing Jaws", "Curse of Hatred", "Sense of the Prey"], 3: ["Clan Loyalty", "Laughter of the Soul"], 4: ["Culling the Weak", "Gnaw", "Gorge"], 5: ["Survivor"] }),
+    startGifts: ["breed", "groupA", "general"],
+    rage: "groupA", willpower: 3,
+    renownNames: ["Ferocity", "Obligation", "Cunning"], renownTotals: TOTALS, renownAssumed: true,
+    backgrounds: GENERIC_BG, mfForbidden: NOT_WOLF,
+    formDiff: false,
+    forms: () => [form("Homid"), form("Anthros", S(2, 0, 2, -1, -3)), form("Crinos", S(3, 1, 4, -2), { zero: ["Appearance"] }), form("Crocas", S(3, 2, 3, -2), { zero: ["Appearance"] }), form("Hyaenid", S(1, 2, 2, -2))],
+    names: { ...people, animal: ["Laughs-at-Lions", "Bone-Cracker", "Night-Cackler", "Red-Jaw", "Dust-Runner", "Moon-Grinner"] },
+    concepts: CONCEPTS, animalConcepts: ["Clan scout", "Savanna hunter", "Young matriarch", "Restless outcast"],
+  });
+
+  // ---------------------------------------------------------------- Ananasi (werespiders), p. 42-52
+  F.simpleGame({
+    id: "ananasi", label: "Ananasi (werespiders)", game: "Ananasi", books: BOOKS,
+    note: "Ananasi have no Rage; they use a blood pool instead (spend blood to shift, act, heal and spin webs). Totem: Queen Ananasa.",
+    breeds: {
+      Homid: { gnosis: 1, willpower: 3 },
+      Arachnid: { gnosis: 5, willpower: 4, animal: true },
+    },
+    groupA: {
+      label: "Aspect",
+      choices: {
+        Myrmidon: { title: "Warrior", gifts: G({ 1: ["Illusion of Size", "Open Seal"], 2: ["Might of Ananasa"], 3: ["Scorpion Tail", "Weak Arm"], 4: ["Blood Hunt", "Drying Bite"], 5: ["Image of the Great Mother", "Thousand Hands"] }) },
+        Viskr: { title: "Balancer", gifts: G({ 1: ["Curse of the Great Web", "Shroud"], 2: ["Mindspeak", "Minor Unweaving"], 3: ["Calcify", "Cocoon"], 4: ["Brethren Call"], 5: ["Shattering", "Web of Illusion"] }) },
+        Wyrsta: { title: "Questioner", gifts: G({ 1: ["Alter Mood", "Beastmind"], 2: ["Blinding Spit", "Visceral Agony"], 3: ["Tick Body"], 4: ["Blades of the Mantis"], 5: ["Summon Net Spider"] }) },
+      },
+    },
+    groupB: {
+      label: "Faction",
+      choices: {
+        Tenere: { start: ["Groom", "Patience of Ananasa"], gifts: G({ 1: ["Groom", "Patience of Ananasa"], 2: ["Beneath Notice", "Breath of Ananasa"], 3: ["Mother's Look", "Reshape Object"], 4: ["Understanding the Tapestry", "Web Sheet"], 5: ["Spider on the Mirror", "Thieving Touch of Spiders"] }) },
+        Hatar: { start: ["Blood of Pain", "Wyrmling Kinship"], gifts: G({ 1: ["Blood of Pain", "Wyrmling Kinship"], 2: ["Blood of Illusion", "Call of the Wyrm"], 3: ["Corrupt", "Pulse of the Invisible"], 4: ["Ill Wind", "Still Blood"], 5: ["Burning Blood", "Touch of the Unweaver"] }) },
+        Kumoti: { start: ["Inspire", "Mother's Touch"], gifts: G({ 1: ["Inspire", "Mother's Touch"], 2: ["Arachnophobia", "Insight of the Mother"], 3: ["Alter Lilian", "Sense Motion"], 4: ["Mindblock", "Nature of the Beast"], 5: ["Assimilation", "Mass Confusion"] }) },
+      },
+    },
+    general: G({ 1: ["Many Eyes", "Stolen Moments"], 2: ["Hand Fangs", "Replenishment of the Flesh"], 3: ["Blood Pump", "Part Webs"], 4: ["Entropic Bite", "Iron Web"], 5: ["Survivor"] }),
+    startGifts: ["groupA", "groupB", "general"],
+    rage: null, willpower: "breed",
+    renownNames: ["Cunning", "Obedience", "Wisdom"], renownTotals: TOTALS, renownAssumed: true,
+    backgrounds: ["Allies", "Contacts", "Fetish", "Kinfolk", "Mentor", "Resources", "Rites"], mfForbidden: NOT_WOLF,
+    formDiff: true,
+    forms: () => [form("Homid", {}, { diff: 6 }), form("Lilian", S(2, 3, 2, -1, -1), { diff: 6 }), form("Pithus", S(4, 1, 3, -3, -2), { diff: 7 }), form("Crawlerling", { Dexterity: 5 }, { zero: ["Strength", "Stamina", "Manipulation", "Appearance"], diff: 6 })],
+    names: { ...people, animal: ["Silk-in-Shadow", "Eight-Eyes", "Patient-Weaver", "Black-Thread", "Still-Hunter"] },
+    concepts: CONCEPTS, animalConcepts: ["Sylie keeper", "Web-weaver", "Patient hunter", "Queen's watcher"],
+  });
+
+  // ---------------------------------------------------------------- Corax (wereravens), p. 76-81
+  const coraxGifts = () => G({ 1: ["Enemy Ways", "Morse", "Raven's Gleaning", "Voice of the Mimic", "Word Beyond"], 2: ["Razor Feathers", "Sky's Beneficence"], 3: ["Eyes of the Eagle", "Hummingbird Dart", "Mynah's Touch"], 4: ["Airt Sense", "Gauntlet Runner", "Helios' Child"], 5: ["Gift of Eyes", "Portents"] });
+  F.simpleGame({
+    id: "corax", label: "Corax (wereravens)", game: "Corax", books: BOOKS,
+    note: "All Corax get \"Raven's Gifts\": +1 Subterfuge, Enigmas and Dodge. The book doesn't state how many starting Gifts; this uses three from the breed's starting list.",
+    breeds: {
+      Corvid: { start: ["Voice of the Mimic", "Enemy Ways", "Word Beyond", "Raven's Gleaning"], gifts: coraxGifts(), avoid: ["Computer", "Law", "Linguistics", "Medicine", "Politics", "Science"], extraAbil: { Talents: { Flight: 2 } }, animal: true },
+      Homid: { start: ["Voice of the Mimic", "Enemy Ways", "Morse", "Word Beyond"], gifts: coraxGifts(), note: "Homid Corax can't take Flight except with freebie points." },
+    },
+    groupB: { label: "Group", choices: { Leshy: { note: "Leshy: Russian forest tricksters and spies." }, "Gulls of Battle": { note: "Gulls of Battle: Scandinavian, fond of Hugin and Munin." }, Tulugaq: { note: "Tulugaq: Corax of the Pure Lands, great tricksters." }, Unaffiliated: {} } },
+    startGifts: ["breed", "breed", "breed"],
+    rage: 1, gnosis: 6, willpower: 3,
+    free: { Subterfuge: 1, Enigmas: 1, Dodge: 1 },
+    renownNames: ["Glory", "Honor", "Wisdom"], renownTotals: TOTALS, renownAssumed: true,
+    backgrounds: GENERIC_BG.filter((x) => x !== "Pure Breed"), mfForbidden: NOT_WOLF,
+    formColumns: ["Strength", "Dexterity", "Stamina", "Manipulation", "Appearance", "Perception"],
+    forms: () => [form("Homid"), form("Crinos", { Strength: 1, Dexterity: 1, Stamina: 1, Manipulation: -2, Appearance: -1, Perception: 3 }), form("Corvid", { Strength: -1, Dexterity: 1, Manipulation: -3, Perception: 3 })],
+    names: { ...people, animal: ["Shiny-Seeker", "Talks-Too-Much", "Black-Wing", "Sees-Far", "Stormcrow's-Kin"] },
+    concepts: ["Courier", "Gossip columnist", "Hacker", "Investigative reporter", "Pawnshop clerk", "Street performer", "Urban explorer"], animalConcepts: ["Messenger", "Scavenger", "Watcher on the wire"],
+  });
+
+  // ---------------------------------------------------------------- Gurahl (werebears), p. 86-96
+  F.simpleGame({
+    id: "gurahl", label: "Gurahl (werebears)", game: "Gurahl", books: BOOKS,
+    note: "Gurahl move through all five auspices over their lives; most new Gurahl are Arcas.",
+    breeds: {
+      Homid: { gnosis: 4, rage: 3, start: ["Persuasion", "Ursa's Light"], noBg: ["Resources"],
+        gifts: G({ 1: ["Persuasion", "Ursa's Light"], 2: ["Climate Control", "Dolorous Countenance"], 3: ["Sense Need", "Shape Matter"], 4: ["Spirit Shield"], 5: ["Fearless Unveiling"] }) },
+      Ursine: { gnosis: 5, rage: 4, start: ["Heightened Senses", "Voice of Woe"], noBg: ["Resources"], avoid: LUPUS_AVOID, animal: true,
+        gifts: G({ 1: ["Heightened Senses", "Voice of Woe"], 2: ["Burrow", "Weather Watch"], 3: ["Pull of the Chosen Land", "Shelter of the Earth"], 4: ["Gnaw", "Sweet Swarm of Vengeance"], 5: ["Call of the Cave Bear"] }) },
+    },
+    groupA: {
+      label: "Auspice",
+      choices: {
+        Arcas: { title: "New Moon", gifts: G({ 1: ["Open Seal", "Walk Like a Man"], 2: ["Cajole", "Sense of the Prey"], 3: ["Safe Passage", "Trackless Waste"], 4: ["Favor of Ursa Minor"] }) },
+        Uzmati: { title: "Full Moon", gifts: G({ 1: ["Slash of the Death Bear", "Ultimatum"], 2: ["Mangi's Strong Arms", "Threaten"], 3: ["Crush", "Silver Claws"], 4: ["Delay the Death Bear's Coming"], 5: ["Rage of the Mother Bear"] }) },
+        Kojubat: { gifts: G({ 1: ["Beast Speech", "Stonesight"], 2: ["Eyes of the Soul", "Song of Terra"], 3: ["Mind Sight", "Mind to Mind"], 4: ["Probe Thoughts"], 5: ["Aversion Therapy"] }) },
+        Kieh: { gifts: G({ 1: ["Diagnose", "Spirit Speech"], 2: ["Refresh", "Sense the Unnatural"], 3: ["Exorcism", "Name the Spirit"], 4: ["Spirit Healing"], 5: ["Image of the Sky Bear"] }) },
+        Rishi: { gifts: G({ 1: ["Befriend", "Truth of Gaia"], 2: ["Compel Truth", "Presence of the Great Bear"], 3: ["Waken"], 4: ["Quell Mob Rage"], 5: ["Oath of the Great Bear"] }) },
+      },
+    },
+    general: G({ 1: ["Fiddlefish", "Healing Tongue", "Ignore Wounds"], 2: ["Calm", "Survival of the Bear", "Treeshake"], 3: ["Dreams of the Buri-Jaan"], 4: ["Masking the Hunted"] }),
+    startGifts: ["breed", "groupA", "general"],
+    rage: "breed", willpower: 6,
+    renownNames: ["Honor", "Succor", "Wisdom"], renownTotals: TOTALS, renownAssumed: true,
+    backgrounds: [...GENERIC_BG, "Umbral Glade"], bgMin: { Mentor: 1 }, mfForbidden: NOT_WOLF,
+    formDiff: true,
+    forms: () => [form("Homid", {}, { diff: 6 }), form("Arthren", S(3, 0, 3, -2, -2), { diff: 7 }), form("Crinos", S(5, -1, 5, -3), { zero: ["Appearance"], diff: 6 }), form("Bjornen", S(4, -2, 4, -3), { diff: 7 }), form("Ursus", S(3, 0, 3, -3), { diff: 6 })],
+    names: { ...people, animal: ["Honey-Finder", "Old-Grumble", "Stone-Paw", "River-Fisher", "Sleeps-Through-Winter"] },
+    concepts: ["Doctor", "Forest ranger", "Herbalist", "Nurse", "Rural vet", "Social worker", "Wilderness guide"], animalConcepts: ["Mountain hermit", "Den mother", "Salmon fisher", "Wanderer of the woods"],
+  });
+
+  // ---------------------------------------------------------------- Kitsune (werefoxes), p. 97-113
+  F.simpleGame({
+    id: "kitsune", label: "Kitsune (werefoxes)", game: "Kitsune", books: BOOKS,
+    note: "Kitsune don't cause the Delirium in Koto form. Koto Appearance is 0 to humans (unchanged to shen).",
+    breeds: {
+      Kojin: { gnosis: 3, start: ["Persuasion", "Seduction", "Smell of Man"],
+        gifts: G({ 1: ["Persuasion", "Seduction", "Smell of Man"], 2: ["Jam Technology", "Silver Tongue", "Staredown"], 3: ["Disquiet", "Reshape Object", "Tongues"], 4: ["Forgetfulness", "Spirit Ward"], 5: ["Assimilation", "Call to Allies"] }) },
+      Roko: { gnosis: 5, start: ["Burrow", "Cricket Leap", "Heightened Senses"], animal: true,
+        gifts: G({ 1: ["Burrow", "Cricket Leap", "Heightened Senses"], 2: ["Scent of Sight", "Sense Imbalance", "Ten Chi"], 3: ["Blind", "Catfeet", "Name the Spirit"], 4: ["Forest Lord"], 5: ["Song of the Great Beast"] }) },
+      Shinju: { gnosis: 4, start: ["Scent of the True Form", "Sense Wyrm", "Truth of Gaia"], note: "Shinju (metis) Kitsune have no deformities.",
+        gifts: G({ 1: ["Flow of Aura", "Scent of the True Form", "Sense Wyrm", "Truth of Gaia"], 2: ["Call to Duty", "Imperial Authority", "Past Whispers"], 3: ["Distant Whispers", "Eyes of the Cat", "Wisdom of the Ancient Ways"], 4: ["Roll Over", "Scent of Beyond"], 5: ["Imperial Obligation", "Marionette"] }) },
+    },
+    groupA: {
+      label: "Path",
+      choices: {
+        Kataribe: { title: "Clay; bards", rage: 2, start: ["Beast Speech", "Fable", "Truth of Gaia"], gifts: G({ 1: ["Beast Speech", "Fable", "Mindspeak", "Truth of Gaia"], 2: ["Centipede's Beckoning", "Distractions", "Lore", "Tongues"], 3: ["Seek", "Silence", "Uzume Sings"], 4: ["Kuei Dance", "Shadows by the Firelight"], 5: ["Fabric of the Mind"] }) },
+        Gukutsushi: { title: "Fog; dreamweavers", rage: 2, start: ["Clear the Mind", "Mother's Touch", "Open Seal"], gifts: G({ 1: ["Blur of the Milky Eye", "Clear the Mind", "Mother's Touch", "Open Seal"], 2: ["Dreamspeak", "Fan-Shadow-Robe", "Silver Tongue", "Taking the Forgotten"], 3: ["Distant Whispers", "Ebisu's Fingers", "Shadow-Fan-Flowers"], 4: ["Moon-Fan-Face-Shadow", "Whelp Body"], 5: ["Madness", "Violation"] }) },
+        Doshi: { title: "Lightning; sorcerers", rage: 3, start: ["Blessing the Blade", "Sense Magic", "Spirit Speech"], gifts: G({ 1: ["Blessing the Blade", "Breath of Yu-Chiang", "Sense Magic", "Sense Wyrm", "Spirit Speech"], 2: ["Blood Omen", "Command Spirit", "Name the Spirit", "Sight from Beyond"], 3: ["Exorcism", "Ghost Speech", "Pulse of the Invisible", "Spirit Ward", "Swarm of Servants"], 4: ["By the Light of the Moon", "Grasp the Beyond", "Spirit Drain"], 5: ["Feral Lobotomy", "Malleable Spirit", "Seal of Inari"] }) },
+        Eji: { title: "Lava; warriors", rage: 4, start: ["Razor Claws", "Resist Pain", "Sense Hostility"], gifts: G({ 1: ["Falling Touch", "Razor Claws", "Resist Pain", "Sense Hostility"], 2: ["Bolt", "Enduring Warrior", "Sense of the Prey", "Spirit of the Fray"], 3: ["Call of the Dead", "Weak Arm"], 4: ["Elemental Meld", "Sorcerous Bite"], 5: ["Dragon Ally", "Fire Immunity"] }) },
+      },
+    },
+    general: G({ 1: ["Chi Sense", "Ishin Denshin", "Scent of Running Water"], 2: ["Moon Dance", "Sense Magic", "Spirit Speech"], 3: ["Ghost Speech", "Puppeteer's Secret"], 4: ["Shadow-Fan-Flowers"], 5: ["Possession"] }),
+    startGifts: ["general", "breed", "groupA"],
+    rage: "groupA", willpower: 5,
+    renownNames: ["Chie", "Toku", "Kagayaki"], renownTotals: TOTALS, renownAssumed: true,
+    backgrounds: ["Ancestors", "Batsu", "Clan", "Fetish", "Go-en", "Resources", "Rites", "Sempai", "Totem"], mfForbidden: NOT_WOLF,
+    formDiff: true,
+    formColumns: ["Strength", "Dexterity", "Stamina", "Manipulation", "Appearance", "Perception"],
+    forms: () => [form("Hitogata", {}, { diff: "" }), form("Sambuhenge", { Dexterity: 1, Stamina: 1, Manipulation: -1 }, { diff: 7 }), form("Koto", { Strength: 1, Dexterity: 2, Stamina: 2, Manipulation: -1, Perception: 1 }, { diff: 6 }), form("Juko", { Dexterity: 3, Stamina: 3, Manipulation: -2, Perception: 1 }, { diff: 7 }), form("Kyubi", { Dexterity: 4, Stamina: 2, Manipulation: -1, Perception: 2 }, { diff: 6 })],
+    names: { female: ["Akiko", "Emi", "Kaori", "Lan", "Mei", "Yuki"], male: ["Daisuke", "Haruto", "Jin", "Ren", "Sora", "Wen"], last: ["Arai", "Chen", "Fujimoto", "Han", "Kimura", "Lee", "Mori", "Park", "Takeda", "Wang"], animal: ["Silver-Tail", "Moon-Whisker", "Red-Lantern", "Quick-Laugh", "Rice-Field-Dancer"] },
+    concepts: ["Calligrapher", "Courtier", "Fortune teller", "Graduate student", "Musician", "Shop owner", "Shrine keeper"], animalConcepts: ["Curious wanderer", "Field fox", "Shrine fox"],
+  });
+
+  // ---------------------------------------------------------------- Nagah (wereserpents), p. 122-130
+  F.simpleGame({
+    id: "nagah", label: "Nagah (wereserpents)", game: "Nagah", books: BOOKS,
+    note: "Nagah have no pack totems; nests share a spiritual bond. In any form but Balaram and Vasuki they carry three doses of venom.",
+    breeds: {
+      Balaram: { gnosis: 1, start: ["Persuasion", "Prehensile Body"], gifts: G({ 1: ["Persuasion", "Prehensile Body"], 2: ["Unexpected Venom"], 3: ["Fluid Grace"], 4: ["Spirit Ward"], 5: ["There Is No Body"] }) },
+      Ahi: { gnosis: 3, start: ["Weaver Sense", "Wyld Sense", "Wyrm Sense"], gifts: G({ 1: ["Weaver Sense", "Wyld Sense", "Wyrm Sense"], 2: ["Indra's Cloak", "Venom Blood"], 3: ["Command Water Spirit"], 4: ["Whirlpool"] }), note: "Ahi (metis) Nagah are not deformed." },
+      Vasuki: { gnosis: 5, start: ["River's Gift", "Treesnake's Blessing"], gifts: G({ 1: ["River's Gift", "Treesnake's Blessing"], 2: ["Lightning Strike"], 3: ["Sidewind"], 4: ["Belly Ride"] }), animal: true },
+    },
+    groupA: {
+      label: "Auspice",
+      choices: {
+        Kamakshi: { title: "Spring", rage: 3, start: ["Ganga's Caress", "Resist Pain"], gifts: G({ 1: ["Ganga's Caress", "Resist Pain"], 2: ["Calm"], 3: ["Dazzle"], 4: ["Denial of Wellbeing"] }) },
+        Kartikeya: { title: "Summer", rage: 4, start: ["Eyes of the War God", "Scent of the True Form"], gifts: G({ 1: ["Eyes of the War God", "Scent of the True Form"], 2: ["Forked Tongue", "Secret Serpent"], 3: ["Blood Running Hot"], 4: ["Veil of Maya"], 5: ["Madness"] }) },
+        Kamsa: { title: "Autumn", rage: 3, start: ["Executioner's Edge", "Slayer's Eye"], gifts: G({ 1: ["Executioner's Edge", "Slayer's Eye"], 2: ["Forked Tongue", "Staredown"], 3: ["Eye of the Cobra"], 4: ["Doppelganger", "Open Wounds"], 5: ["Heartstrings"] }) },
+        Kali: { title: "Winter", rage: 4, start: ["Guided Strike", "Iron Coils"], gifts: G({ 1: ["Guided Strike", "Iron Coils"], 2: ["Executioner's Gift"], 3: ["Destroying Blow", "Discern Weakness"], 4: ["Mindblock"], 5: ["Magistrate's Icy Judgment"] }) },
+      },
+    },
+    general: G({ 1: ["Scent of Running Water", "Sense Wyrm", "Slayer's Eye"], 2: ["Sense of the Prey"], 3: ["Combat Healing"], 4: ["Swimming the Spirit River"], 5: ["Breath of the Dragon Lords"] }),
+    startGifts: ["general", "breed", "groupA"],
+    rage: "groupA", willpower: 4,
+    renownNames: null, renownNote: "Nagah have no Renown categories; they advance in Rank by reporting to the Sesha.",
+    backgrounds: GENERIC_BG.filter((x) => x !== "Totem"), mfForbidden: NOT_WOLF,
+    formDiff: true,
+    forms: () => [form("Balaram", {}, { diff: "" }), form("Silkaram", S(2, 0, 2, -2, -2), { diff: 7 }), form("Azhi Dahaka", S(3, 2, 3, -3), { zero: ["Appearance"], diff: 6 }), form("Kali Dahaka", S(2, 2, 2), { zero: ["Appearance", "Manipulation"], diff: 7 }), form("Vasuki", S(-1, 2, 1), { zero: ["Manipulation"], diff: 6 })],
+    names: { female: ["Anjali", "Deepa", "Meera", "Priya", "Sita"], male: ["Arjun", "Kiran", "Nikhil", "Rohan", "Vikram"], last: ["Bhatt", "Desai", "Iyer", "Kapoor", "Menon", "Nair", "Rao", "Shah", "Varma"], animal: ["Coiled-Patience", "Cold-Eye", "Swift-Strike", "River-Shadow", "Hood-Raised"] },
+    concepts: ["Antiquities dealer", "Detective", "Diplomat", "Judge", "Martial artist", "Physician"], animalConcepts: ["Temple serpent", "River hunter", "Silent watcher"],
+  });
+
+  // ---------------------------------------------------------------- Nuwisha (werecoyotes), p. 131-137
+  const latraniGifts = copy(W.breeds.Lupus.gifts);
+  latraniGifts.core[1] = [...latraniGifts.core[1], "Speed of Thought"];
+  F.simpleGame({
+    id: "nuwisha", label: "Nuwisha (werecoyotes)", game: "Nuwisha", books: BOOKS,
+    note: "Nuwisha have no Rage and need a personal Totem (a face of Trickster). Gifts come from the Garou breed list, the Ragabash list and the Nuwisha list.",
+    breeds: {
+      Homid: { gnosis: 1, start: ["Persuasion", "Master of Fire", "Smell of Man"], gifts: copy(W.breeds.Homid.gifts) },
+      Latrani: { gnosis: 5, start: ["Hare's Leap", "Heightened Senses", "Speed of Thought"], gifts: latraniGifts, avoid: LUPUS_AVOID, animal: true },
+    },
+    extraSource: [copy(W.auspices.Ragabash.gifts), "Ragabash"],
+    general: G({ 1: ["Snake's Skin", "Spirit Speech", "Swollen Tongue"], 2: ["Odious Aroma", "Sheep's Clothing"], 3: ["Gift of Rage", "Happy Thoughts"], 4: ["Bridge Walker", "Trickster's Skin"], 5: ["Assimilation", "Coyote's Mask"] }),
+    startGifts: ["breed", "extra", "general"],
+    rage: null, willpower: 4,
+    renownNames: ["Glory", "Humor", "Wisdom"], renownTotals: TOTALS,
+    backgrounds: GENERIC_BG, bgMin: { Totem: 1 }, mfForbidden: NOT_WOLF,
+    formDiff: true,
+    forms: () => [form("Homid", {}, { diff: 6 }), form("Tsitsu", S(1, 1, 2, -1), { diff: 7 }), form("Manabozho", S(2, 3, 3, -2), { zero: ["Appearance"], diff: 6 }), form("Sendeh", S(2, 3, 3, -3), { diff: 7 }), form("Latrani", S(0, 3, 3, -3), { diff: 6 })],
+    names: { ...people, animal: ["Steps-Lightly", "Grins-at-Trouble", "Dust-Devil", "Laughs-Last", "Stolen-Shoe"] },
+    concepts: ["Class clown", "Con artist", "Drifter", "Prankster", "Stand-up comic", "Street magician"], animalConcepts: ["Desert trickster", "Trash-can raider", "Road wanderer"],
+  });
+
+  // ---------------------------------------------------------------- Ratkin (wererats), p. 138-148
+  F.simpleGame({
+    id: "ratkin", label: "Ratkin (wererats)", game: "Ratkin", books: BOOKS,
+    breeds: {
+      Homid: { gnosis: 1, start: ["Cooking", "Eau de Rat", "Persuasion"], gifts: G({ 1: ["Cooking", "Eau de Rat", "Persuasion"], 2: ["Instinct"], 3: ["Reshape Object"], 4: ["Body Wrack"] }) },
+      Metis: { gnosis: 3, start: ["Cloak of Shadows", "Rat Mother's Touch", "Sense Wyrm"], gifts: G({ 1: ["Cloak of Shadows", "Rat Mother's Touch", "Sense Wyrm"], 2: ["Stink"], 3: ["Sliver Tooth"], 4: ["Whelp Body"] }), deformity: true },
+      Rodens: { gnosis: 5, start: ["Absolute Balance", "Leap of the Kangaroo Rat", "Survival"], gifts: G({ 1: ["Absolute Balance", "Leap of the Kangaroo Rat", "Survival"], 2: ["Devour the Dead"], 3: ["Sliver Tooth"], 4: ["Mind of the Swarm"] }), animal: true },
+    },
+    groupA: {
+      label: "Aspect",
+      choices: {
+        "Tunnel Runner": { rage: 1, start: ["Danger Sense", "Silent Running"], gifts: G({ 1: ["Danger Sense", "Silent Running"], 2: ["Urban Camouflage"], 4: ["Speak in Tongues"] }), noBg: ["Resources"],
+          perk: ["Tunnel Runner", "Culturally Gifted (blend into a culture); Wanderlust Visions; Traveling Light (no Resources below Rank 3)."] },
+        "Shadow Seer": { rage: 2, start: ["Rat Mother's Touch", "Sense Weaver"], gifts: G({ 1: ["Rat Mother's Touch", "Sense Weaver"], 2: ["Name the Spirit"], 3: ["Command Spirit"], 4: ["Pulse of the Invisible"] }), freeGifts: ["Spirit Speech"],
+          perk: ["Shadow Seer", "Spirits Speak to Me (free Spirit Speech); Spirit Sight; Disconnection on botched Rage/Gnosis/Willpower rolls."] },
+        "Knife-Skulker": { rage: 3, start: ["Sticky Paws", "Truth of Gaia"], gifts: G({ 1: ["Sticky Paws", "Truth of Gaia"], 2: ["Stalk"], 3: ["Doppelganger"], 4: ["Open Wounds"], 5: ["Geas"] }), bgBonus: { Contacts: 3 },
+          perk: ["Knife-Skulker", "Contracts and Contacts (+3 Contacts); Sense of Justice; Assassin's Code."] },
+        "Blade Slave": { rage: 4, start: ["Resist Pain", "Slicing Teeth"], gifts: G({ 1: ["Resist Pain", "Slicing Teeth"], 4: ["Persecution Complex"] }),
+          perk: ["Blade Slave", "Pain Dagger rite; Buff and Tough (extra \"Tough\" health level above Bruised); Blood Lust (Rage difficulty always 5)."] },
+      },
+    },
+    general: G({ 1: ["Cloak of Shadows", "Darksight"], 2: ["Crawling Chaos"], 3: ["Backbite"], 5: ["Riot"] }),
+    startGifts: ["breed", "groupA", "general"],
+    rage: "groupA", willpower: 3,
+    renownNames: ["Infamy", "Obligation", "Cunning"], renownTotals: TOTALS, renownAssumed: true,
+    backgrounds: GENERIC_BG.filter((x) => x !== "Pure Breed"), mfForbidden: NOT_WOLF,
+    formColumns: ["Strength", "Dexterity", "Stamina", "Charisma", "Manipulation", "Appearance", "Perception"],
+    forms: (sel) => [form("Homid"), form("Crinos", { Strength: sel.breed === "Metis" ? 2 : 1, Dexterity: 4, Stamina: sel.breed === "Metis" ? 1 : 2, Charisma: -2, Appearance: -1, Perception: 1 }), form("Rodens", { Strength: -1, Dexterity: 2, Stamina: 2, Perception: 3 })],
+    names: { ...people, animal: ["Gnaws-Wires", "Quick-Whisker", "Sewer-King", "Scratch", "Nibbles-the-Bones"] },
+    concepts: ["Anarchist", "Dumpster diver", "Hacker", "Line cook", "Squatter", "Subway busker"], animalConcepts: ["Swarm runner", "Tunnel scout", "Nest guardian"],
+  });
+
+  // ---------------------------------------------------------------- Rokea (weresharks), p. 149-158
+  F.simpleGame({
+    id: "rokea", label: "Rokea (weresharks)", game: "Rokea", books: BOOKS,
+    note: "Chasmus and Squamus forms have no Dexterity on land; the table shows their in-water Dexterity. Glabrus is only known to Rokea who've spent time on land.",
+    breeds: {
+      Homid: { gnosis: 1 },
+      Squamus: { gnosis: 5, avoid: LUPUS_AVOID, free: { "Primal-Urge": 1, Survival: 1 }, maxAppearance: 2, animal: true },
+    },
+    groupA: {
+      label: "Auspice",
+      choices: {
+        Brightwater: { title: "sun or full moon; warriors", rage: 5, start: ["Eyes of the Wound", "Restraint"], gifts: G({ 1: ["Eyes of the Wound", "Restraint"], 2: ["Narke's Gift", "Undertow"], 3: ["Bends", "Strength of the Crashing Waves"], 4: ["No Walls"], 5: ["Blood of Darkness", "Pain of the Wound"] }) },
+        Dimwater: { title: "clouded sun or waxing/waning moon; leaders", rage: 4, start: ["King Fish", "Sea's Voice"], gifts: G({ 1: ["King Fish", "Sea's Voice"], 2: ["Crushing Depths", "Spit Teeth"], 3: ["Drown", "Sea's Wisdom"], 4: ["Living Sea", "Quick Currents"], 5: ["Common Foe"] }) },
+        Darkwater: { title: "eclipse or new moon; seekers", rage: 3, start: ["Blood of the Deeps", "Silent Sending"], gifts: G({ 1: ["Blood of the Deeps", "Silent Sending"], 2: ["Piercing Shriek"], 3: ["Scent of Blood", "Swim Through the School"], 4: ["Wave's Passage"], 5: ["Madness", "Oversea's Gift"] }) },
+      },
+    },
+    general: G({ 1: ["Breach", "Killing Bite"], 2: ["Gulp", "Restless Waters"], 3: ["Gift the Ray", "Shark's Bones"], 4: ["Kun's Maw", "Relentless Hunt"], 5: ["Great Summons", "Ocean's Peace"] }),
+    startGifts: ["general", "groupA"],
+    rage: "groupA", willpower: 4,
+    renownNames: ["Valor", "Harmony", "Innovation"], renownTotals: TOTALS, renownAssumed: true,
+    backgrounds: GENERIC_BG.filter((x) => x !== "Pure Breed"), mfForbidden: NOT_WOLF,
+    formDiff: true,
+    forms: () => [form("Homid", {}, { diff: "" }), form("Glabrus", S(2, 0, 2, -2, -2), { diff: 9 }), form("Gladius", S(3, -1, 2, -4), { zero: ["Appearance"], diff: 6 }), form("Chasmus", S(4, 1, 3, -4), { diff: 7 }), form("Squamus", S(2, 3, 2, -4), { diff: 6 })],
+    names: { ...people, animal: ["Cold-Water", "Red-Fin", "Deep-Hunger", "Wave-Breaker", "Silent-Teeth"] },
+    concepts: ["Diver", "Fisher", "Lifeguard", "Marine biologist", "Sailor", "Surfer"], animalConcepts: ["Reef hunter", "Deep-water wanderer", "Slew leader"],
+  });
+})();
+
+</script>
+  <script>WOD.init();</script>
+</body>
+</html>

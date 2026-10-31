@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World of Darkness Character Generator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="controls">
+    <label>Sheet <select id="mode"><option value="npc">NPC (random)</option><option value="pc">Player character (build it)</option></select></label>
+    <label>Game <select id="game"></select></label>
+    <div id="options"></div>
+    <div class="spacer"></div>
+    <button id="generate" class="primary">Generate</button>
+    <button id="save">Save character</button>
+    <button id="open">Open character</button>
+    <input type="file" id="open-file" accept=".json,application/json" hidden>
+    <button id="print">Print / Save as PDF</button>
+  </div>
+
+  <main id="sheet"></main>
+
+  <script src="app.js"></script>
+  <script src="games/fera.js"></script>
+  <script src="games/werewolf.js"></script>
+  <script src="games/bastet.js"></script>
+  <script src="games/mokole.js"></script>
+  <script src="games/changing-breeds.js"></script>
+  <script>WOD.init();</script>
+</body>
+</html>
