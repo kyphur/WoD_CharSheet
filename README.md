@@ -1,6 +1,6 @@
 # World of Darkness Character Generator
 
-Character sheets for classic World of Darkness shapeshifters: Werewolf: the Apocalypse, Bastet, Mokolé, Ajaba, Ananasi, Corax, Gurahl, Kitsune, Nagah, Nuwisha, Ratkin and Rokea.
+Character sheets for classic World of Darkness: **Vampire: the Masquerade** (Revised) and the shapeshifters: Werewolf: the Apocalypse, Bastet, Mokolé, Ajaba, Ananasi, Corax, Gurahl, Kitsune, Nagah, Nuwisha, Ratkin and Rokea.
 
 **Use it online:** https://kyphur.github.io/WoD_CharSheet/
 
@@ -9,14 +9,14 @@ Character sheets for classic World of Darkness shapeshifters: Werewolf: the Apoc
 ## Making your character
 
 1. At the top, set **Sheet** to **Player character (build it)**.
-2. Pick your **Game**, then breed, auspice/aspect, tribe and gender (or leave any on Random).
+2. Pick your **Game**, then clan or breed, auspice, tribe and gender (or leave any on Random). You can also change these later on the sheet itself.
 3. Click **Start new character**. The **Character Creation Points** box counts your points as you click dots:
    - Attributes 7/5/3
    - Abilities 13/9/5 (no higher than 3 before freebies)
    - Backgrounds 5
-   - starting Gifts
+   - starting Gifts (shapeshifters), or Disciplines 3 and Virtues 7 (Vampire)
    - freebie points
-4. Use the **+ Add** boxes for Backgrounds, Gifts, Merits and Flaws.
+4. Use the **+ Add** boxes for Backgrounds, Gifts, Disciplines, Merits and Flaws.
 5. Click **Finish character** when everything is spent. Stuck? **Fill the rest randomly** fills in what's left.
 
 ## Keeping your character

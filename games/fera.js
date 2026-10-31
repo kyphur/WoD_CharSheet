@@ -439,6 +439,7 @@ WOD.fera = (function () {
       rows.push({ title: p.title, parts: [{ name: "Dots", have: Math.min(spent, p.size), of: p.size }], hint: p.hint });
       charge(p.title, Math.max(0, spent - p.size), C[p.kind]);
       for (const [n, v] of items) if (v < poolStart(p, n)) warnings.push(`${n} starts at ${poolStart(p, n)}; it can't go lower.`);
+      if (p.allowed) for (const [n, v] of items) if (v > 0 && !p.allowed.includes(n)) warnings.push(`${n} isn't one of this character's own ${p.title}; it needs the Storyteller's OK.`);
     }
 
     // Gifts.
@@ -511,7 +512,7 @@ WOD.fera = (function () {
     }
     for (const p of b.pools || []) {
       const part = row(p.title).parts[0];
-      spread(colBy(c, p.column).items, part.of - part.have, p.fillCap || 5, () => true, (n) => poolStart(p, n));
+      spread(colBy(c, p.column).items, part.of - part.have, p.fillCap || 5, (n) => !p.allowed || p.allowed.includes(n), (n) => poolStart(p, n));
     }
     // Gifts: one Level 1 from each own list that has none yet, then one per Rank level.
     const gCol = colBy(c, "Gifts");

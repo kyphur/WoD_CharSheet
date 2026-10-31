@@ -508,7 +508,8 @@ window.WOD = (function () {
         if (h && t) h[1] = t[1];
       }
       // Single ratings that come from the choices (Rage, Gnosis, Willpower, Humanity...).
-      const advNames = (after.build && after.build.advKinds) || ["Rage", "Gnosis", "Willpower"];
+      // (choiceAdv: the ratings a game's choices actually set; Vampire's come from Virtues instead.)
+      const advNames = (after.build && (after.build.choiceAdv || after.build.advKinds)) || ["Rage", "Gnosis", "Willpower"];
       for (const k of advNames) {
         const a = col(after, k), b0 = col(before, k), mine = col(c, k);
         if (!a || !b0 || !mine || !mine.items) continue;
