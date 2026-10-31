@@ -157,14 +157,20 @@
     const streamName = opts.stream || R.pick(Object.keys(DATA.streams));
     const stream = DATA.streams[streamName];
     const table = auspiceTable(streamName);
-    // The page's Auspice list mixes all three systems; use it only if it fits this stream.
-    const auspice = opts.auspice && table[opts.auspice] ? opts.auspice : R.pick(Object.keys(table));
+    // The page's Auspice list mixes all three systems. An auspice from another system
+    // (e.g. after changing Stream on the sheet) maps to the same position in this one.
+    let auspice = opts.auspice && table[opts.auspice] ? opts.auspice : null;
+    if (!auspice && opts.auspice) {
+      const from = [DATA.solar, DATA.makara, DATA.zhongLung].find((t) => t[opts.auspice]);
+      if (from) auspice = Object.keys(table)[Object.keys(from).indexOf(opts.auspice) % Object.keys(table).length];
+    }
+    auspice = auspice || R.pick(Object.keys(table));
     const a = table[auspice];
     const varnaName = opts.varna || R.pick(stream.varna);
     const v = DATA.varna[varnaName];
     const notes = [];
     const gender = F.pickGender(opts);
-    if (opts.auspice && !table[opts.auspice]) notes.push(`${opts.auspice} isn't a ${streamName} auspice, so ${auspice} was rolled instead.`);
+    if (opts.auspice && !table[opts.auspice]) notes.push(`${opts.auspice} isn't a ${streamName} auspice, so ${auspice} was used instead.`);
     if (!stream.varna.includes(varnaName)) notes.push(`${varnaName} is uncommon among the ${streamName}.`);
 
     const { attrs, priority: attrPriority } = F.attributes();
@@ -214,7 +220,7 @@
       ...Object.entries(DATA.streams).filter(([n]) => n !== streamName).map(([n, s]) => [`${n} (other stream)`, n, s.gifts]),
     ];
 
-    return F.sheet({
+    const c = F.sheet({
       game: "Mokolé",
       name,
       header: [
@@ -253,6 +259,9 @@
         giftHint: `One Level 1 Gift from your auspice (${auspice}) and one from the General list${rank > 1 ? `, plus one Gift of each Level from 2 to ${rank}` : ""}.`,
       },
     });
+    c.choices = { breed, stream: streamName, auspice, varna: varnaName, gender, rank, books: opts.books };
+    c.choiceFields = { breed: "Breed", stream: "Stream", auspice: "Auspice", varna: "Varna", gender: "Gender", rank: "Rank" };
+    return c;
   }
 
   function recompute(c) {
@@ -267,7 +276,9 @@
     options: [
       { id: "breed", label: "Breed", choices: Object.keys(DATA.breeds) },
       { id: "stream", label: "Stream", choices: Object.keys(DATA.streams) },
-      { id: "auspice", label: "Auspice", choices: [...Object.keys(DATA.solar), ...Object.keys(DATA.makara), ...Object.keys(DATA.zhongLung)] },
+      { id: "auspice", label: "Auspice", choices: [...Object.keys(DATA.solar), ...Object.keys(DATA.makara), ...Object.keys(DATA.zhongLung)],
+        // On the sheet, only the auspices of the character's stream.
+        choicesFor: (ch) => Object.keys(auspiceTable(ch.stream)) },
       { id: "varna", label: "Varna", choices: Object.keys(DATA.varna) },
       { id: "gender", label: "Gender", choices: ["Female", "Male"] },
       { id: "rank", label: "Rank", choices: [1, 2, 3, 4, 5], default: 1, random: false },

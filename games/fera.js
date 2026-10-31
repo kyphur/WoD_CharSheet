@@ -92,23 +92,23 @@ WOD.fera = (function () {
     return { attrs, priority };
   }
 
-  function abilities(avoid = []) {
+  function abilities(avoid = [], LIST = ABILITIES) {
     const abil = {};
     const priority = {};
     const ok = (n) => !avoid.includes(n);
     // Pick an order where every category has room for its points (max 3 each);
     // a wolf- or reptile-born character can't put 13 points into four Knowledges.
-    const room = (cat) => ABILITIES[cat].filter(ok).length * 3;
+    const room = (cat) => LIST[cat].filter(ok).length * 3;
     let order;
     for (let tries = 0; tries < 50; tries++) {
-      order = R.shuffle(Object.keys(ABILITIES));
+      order = R.shuffle(Object.keys(LIST));
       if (order.every((cat, i) => room(cat) >= [13, 9, 5][i])) break;
     }
     order.forEach((cat, i) => {
       const p = [13, 9, 5][i];
       priority[cat] = PRIORITY[i];
-      ABILITIES[cat].forEach((n) => (abil[n] = 0));
-      const allowed = ABILITIES[cat].filter(ok);
+      LIST[cat].forEach((n) => (abil[n] = 0));
+      const allowed = LIST[cat].filter(ok);
       // Focus points on a handful of abilities so characters feel specialized.
       const size = Math.min(allowed.length, Math.max(Math.ceil(p / 3), Math.ceil(p / 2) + 1));
       R.distribute(abil, R.shuffle(allowed).slice(0, size), p, 3);
@@ -322,13 +322,27 @@ WOD.fera = (function () {
   }
 
   // ---------------------------------------------------------------------------
-  // Player characters. A game makes a character with 0 freebies and no Merits or
-  // Flaws; blank() then clears the random choices so the player picks everything,
-  // and budget() counts what they have spent against the creation rules.
-  const ADV = ["Rage", "Gnosis", "Willpower"];
+  // Player characters, for any game. A game makes a character with 0 freebies and
+  // no Merits or Flaws; blank() then clears the random choices so the player picks
+  // everything, and budget() counts what they have spent against the creation rules.
+  // c.build is plain data (it is saved with the character):
+  //   costs       freebie cost of each kind (Attribute, Ability, Background, Gift, Rage, Discipline...)
+  //   advKinds    single-rating columns with a starting value (Rage, Gnosis, Willpower / Humanity...)
+  //   adv         those starting values
+  //   pools       extra point pools: [{ title, column, kind, size, startAll, start: {name: n}, fillCap, hint }]
+  //   attrStart   Attributes that don't start at 1;  attrMax  Attributes with a lower limit
+  //   avoid, noBg, bgStart, bgFree, freeAbil, rank, and for Gifts: keepGifts, giftAllowance, giftHint, ownSources
+  //   costText, xpText   explanations shown to the player
+  const DEFAULT_ADV = ["Rage", "Gnosis", "Willpower"];
+  const DEFAULT_COST_TEXT = "Costs: Attribute 5 · Ability 2 · Background 1 · Gift 7 · Rage 1 · Gnosis 2 · Willpower 1 · Merits cost their points · Flaws give up to 7.";
   const secBy = (c, title) => c.sections.find((s) => s.title === title);
   const colBy = (c, title) => c.sections.flatMap((s) => s.columns).find((col) => col.title === title);
-  const advCols = (c) => c.sections.flatMap((s) => s.columns).filter((col) => ADV.includes(col.title) && col.items);
+  const advKinds = (c) => c.build.advKinds || DEFAULT_ADV;
+  const advCols = (c) => c.sections.flatMap((s) => s.columns).filter((col) => advKinds(c).includes(col.title) && col.items);
+  const costsOf = (c) => c.build.costs || COSTS;
+  const attrStart = (b, n) => (b.attrStart || {})[n] ?? 1;
+  const attrMax = (b, n) => (b.attrMax || {})[n] ?? (n === "Appearance" && b.maxAppearance ? b.maxAppearance : 5);
+  const poolStart = (p, n) => (p.start || {})[n] ?? p.startAll ?? 0;
   const costOf = (label) => Number((String(label).match(/\((\d+) pts?\b/) || [0, 0])[1]);
   const giftLevel = (label) => Number((String(label).match(/, L(\d)/) || [0, 1])[1]);
   const giftSource = (label) => (String(label).match(/\(([^,()]+), L\d/) || [0, ""])[1];
@@ -339,13 +353,16 @@ WOD.fera = (function () {
     c.stage = "build";
     b.freebies = freebies;
     b.adv = Object.fromEntries(advCols(c).map((col) => [col.title, col.items[0][1]]));
-    for (const col of secBy(c, "Attributes").columns) col.items.forEach((it) => (it[1] = 1));
+    for (const col of secBy(c, "Attributes").columns) col.items.forEach((it) => (it[1] = attrStart(b, it[0])));
     for (const col of secBy(c, "Abilities").columns) col.items.forEach((it) => (it[1] = b.freeAbil[it[0]] || 0));
     colBy(c, "Backgrounds").items = Object.entries(b.bgStart).filter(([, v]) => v > 0).map(([n, v]) => [n, v, 5]);
+    for (const p of b.pools || []) colBy(c, p.column).items.forEach((it) => (it[1] = poolStart(p, it[0])));
     const gifts = colBy(c, "Gifts");
-    const kept = gifts.list.filter((l) => b.keepGifts.some((n) => l.startsWith(n + " (")));
-    b.giftAllowance = gifts.list.length - kept.length;
-    gifts.list = kept;
+    if (gifts) {
+      const kept = gifts.list.filter((l) => b.keepGifts.some((n) => l.startsWith(n + " (")));
+      b.giftAllowance = gifts.list.length - kept.length;
+      gifts.list = kept;
+    }
     colBy(c, "Merits").list = [];
     colBy(c, "Flaws").list = [];
     for (const h of c.header) {
@@ -357,7 +374,6 @@ WOD.fera = (function () {
     c.notes = c.notes.filter((n) => !n.includes("left over"));
     c.sources = [];
     c.edited = false;
-    budget(c);
     return c;
   }
 
@@ -374,24 +390,21 @@ WOD.fera = (function () {
   // updates the Primary/Secondary/Tertiary labels to match how points were spent.
   function budget(c) {
     const b = c.build;
+    const C = costsOf(c);
     const rows = [];
     const warnings = [];
     const freebieUse = [];
     const charge = (what, dots, each) => dots > 0 && freebieUse.push({ what: `${what} +${dots}`, cost: dots * each });
-
     const relabel = (col, pr) => (col.title = `${col.title.split(" (")[0]} (${pr})`);
 
-    // Attributes: everything starts at 1; 7/5/3 dots.
+    // Attributes: 7/5/3 dots above their starting value (normally 1).
     const aCols = secBy(c, "Attributes").columns;
-    const aSpent = aCols.map((col) => col.items.reduce((s, [, v]) => s + Math.max(0, v - 1), 0));
+    const aSpent = aCols.map((col) => col.items.reduce((s, [n, v]) => s + Math.max(0, v - attrStart(b, n)), 0));
     const aFit = fitPools(aSpent, [7, 5, 3]);
     aCols.forEach((col, i) => relabel(col, aFit.pool[i].priority));
     rows.push({ title: "Attributes", parts: aCols.map((col, i) => ({ name: col.title.split(" (")[0], have: aSpent[i], of: aFit.pool[i].size })) });
-    charge("Attributes", aFit.over, COSTS.Attribute);
-    if (b.maxAppearance) {
-      const app = aCols.flatMap((col) => col.items).find((it) => it[0] === "Appearance");
-      if (app && app[1] > b.maxAppearance) warnings.push(`This breed can't start with Appearance above ${b.maxAppearance}.`);
-    }
+    charge("Attributes", aFit.over, C.Attribute);
+    for (const [n, v] of aCols.flatMap((col) => col.items)) if (v > attrMax(b, n)) warnings.push(`${n} can't start above ${attrMax(b, n)} for this character.`);
 
     // Abilities: 13/9/5, no higher than 3 before freebies.
     const abCols = secBy(c, "Abilities").columns;
@@ -401,41 +414,53 @@ WOD.fera = (function () {
         const start = b.freeAbil[n] || 0;
         const cap = Math.max(3, start);
         above3 += Math.max(0, v - cap);
-        if (v > start && b.avoid.includes(n)) warnings.push(`${n}: this breed can't start with it (wolf/animal-born).`);
+        if (v > start && b.avoid.includes(n)) warnings.push(`${n}: this character can't start with it.`);
         return s + Math.max(0, Math.min(v, cap) - start);
       }, 0)
     );
     const abFit = fitPools(abSpent, [13, 9, 5]);
     abCols.forEach((col, i) => relabel(col, abFit.pool[i].priority));
     rows.push({ title: "Abilities", parts: abCols.map((col, i) => ({ name: col.title.split(" (")[0], have: abSpent[i], of: abFit.pool[i].size })) });
-    charge("Abilities", abFit.over + above3, COSTS.Ability);
+    charge("Abilities", abFit.over + above3, C.Ability);
     if (above3) warnings.push(`Abilities above 3 are paid with freebie points (${above3} dot${above3 === 1 ? "" : "s"}).`);
 
     // Backgrounds: 5 dots (some groups start with extra dots already filled in).
     const bgItems = colBy(c, "Backgrounds").items;
     const bgSpent = bgItems.reduce((s, [n, v]) => s + Math.max(0, v - (b.bgStart[n] || 0)), 0);
     rows.push({ title: "Backgrounds", parts: [{ name: "Dots", have: bgSpent, of: b.bgFree }] });
-    charge("Backgrounds", Math.max(0, bgSpent - b.bgFree), COSTS.Background);
+    charge("Backgrounds", Math.max(0, bgSpent - b.bgFree), C.Background);
     for (const [n, v] of bgItems) if (v > 0 && b.noBg.includes(n)) warnings.push(`${n}: not allowed for this character.`);
     for (const [n, v] of Object.entries(b.bgStart)) if ((bgItems.find((it) => it[0] === n) || [0, 0])[1] < v) warnings.push(`${n} should be at least ${v}.`);
 
-    // Gifts.
-    const gifts = colBy(c, "Gifts").list;
-    const chosen = gifts.length - b.keepGifts.length;
-    rows.push({ title: "Gifts", parts: [{ name: "Chosen", have: Math.min(chosen, b.giftAllowance), of: b.giftAllowance }], hint: b.giftHint });
-    if (chosen > b.giftAllowance) freebieUse.push({ what: `Extra Gifts ×${chosen - b.giftAllowance}`, cost: (chosen - b.giftAllowance) * COSTS.Gift });
-    for (const g of gifts) {
-      if (giftLevel(g) > b.rank) warnings.push(`${g.split(" (")[0]} is Level ${giftLevel(g)}, above Rank ${b.rank}.`);
-      const src = giftSource(g);
-      if (src && b.ownSources.length && !b.ownSources.includes(src)) warnings.push(`${g.split(" (")[0]} comes from ${src}, not one of this character's own Gift lists.`);
+    // Other pools (Disciplines, Virtues...).
+    for (const p of b.pools || []) {
+      const items = colBy(c, p.column).items;
+      const spent = items.reduce((s, [n, v]) => s + Math.max(0, v - poolStart(p, n)), 0);
+      rows.push({ title: p.title, parts: [{ name: "Dots", have: Math.min(spent, p.size), of: p.size }], hint: p.hint });
+      charge(p.title, Math.max(0, spent - p.size), C[p.kind]);
+      for (const [n, v] of items) if (v < poolStart(p, n)) warnings.push(`${n} starts at ${poolStart(p, n)}; it can't go lower.`);
     }
 
-    // Rage / Gnosis / Willpower above their starting values.
+    // Gifts.
+    const gCol = colBy(c, "Gifts");
+    if (gCol) {
+      const gifts = gCol.list;
+      const chosen = gifts.length - b.keepGifts.length;
+      rows.push({ title: "Gifts", parts: [{ name: "Chosen", have: Math.min(chosen, b.giftAllowance), of: b.giftAllowance }], hint: b.giftHint });
+      if (chosen > b.giftAllowance) freebieUse.push({ what: `Extra Gifts ×${chosen - b.giftAllowance}`, cost: (chosen - b.giftAllowance) * C.Gift });
+      for (const g of gifts) {
+        if (giftLevel(g) > b.rank) warnings.push(`${g.split(" (")[0]} is Level ${giftLevel(g)}, above Rank ${b.rank}.`);
+        const src = giftSource(g);
+        if (src && b.ownSources.length && !b.ownSources.includes(src)) warnings.push(`${g.split(" (")[0]} comes from ${src}, not one of this character's own Gift lists.`);
+      }
+    }
+
+    // Rage / Gnosis / Willpower / Humanity above their starting values.
     for (const col of advCols(c)) {
       const k = col.title;
       const v = col.items[0][1];
       const base = b.adv[k] ?? v;
-      if (v > base) charge(k, v - base, COSTS[k]);
+      if (v > base) charge(k, v - base, C[k]);
       if (v < base) warnings.push(`${k} starts at ${base}; it can't go lower at creation.`);
     }
 
@@ -448,7 +473,7 @@ WOD.fera = (function () {
 
     const total = b.freebies + flawBonus;
     const used = freebieUse.reduce((s, x) => s + x.cost, 0);
-    b.result = { rows, warnings, freebieUse, total, used, flawBonus };
+    b.result = { rows, warnings, freebieUse, total, used, flawBonus, costText: b.costText || DEFAULT_COST_TEXT };
     return b.result;
   }
 
@@ -456,24 +481,25 @@ WOD.fera = (function () {
   function fillRest(c) {
     const b = c.build;
     const res = budget(c);
-    const spread = (items, points, cap, ok) => {
+    const row = (title) => res.rows.find((r) => r.title === title);
+    const spread = (items, points, cap, ok, startOf) => {
       for (let p = 0; p < points; p++) {
         const open = items.filter((it) => it[1] < cap && ok(it[0], it[1]));
         if (!open.length) return;
-        const owned = open.filter((it) => it[1] > (b.freeAbil[it[0]] || 0));
+        const owned = open.filter((it) => it[1] > startOf(it[0]));
         R.pick(owned.length && R.chance(0.6) ? owned : open)[1]++;
       }
     };
     secBy(c, "Attributes").columns.forEach((col, i) => {
-      const part = res.rows[0].parts[i];
-      spread(col.items, part.of - part.have, 5, (n, v) => !(b.maxAppearance && n === "Appearance" && v >= b.maxAppearance));
+      const part = row("Attributes").parts[i];
+      spread(col.items, part.of - part.have, 5, (n, v) => v < attrMax(b, n), (n) => attrStart(b, n));
     });
     secBy(c, "Abilities").columns.forEach((col, i) => {
-      const part = res.rows[1].parts[i];
-      spread(col.items, part.of - part.have, 3, (n) => !b.avoid.includes(n));
+      const part = row("Abilities").parts[i];
+      spread(col.items, part.of - part.have, 3, (n) => !b.avoid.includes(n), (n) => b.freeAbil[n] || 0);
     });
     const bgCol = colBy(c, "Backgrounds");
-    const bgPart = res.rows[2].parts[0];
+    const bgPart = row("Backgrounds").parts[0];
     for (let p = 0; p < bgPart.of - bgPart.have; p++) {
       const owned = bgCol.items.filter((it) => it[1] < 5);
       if (owned.length && R.chance(0.6)) { R.pick(owned)[1]++; continue; }
@@ -483,32 +509,41 @@ WOD.fera = (function () {
       if (it) it[1]++;
       else bgCol.items.push([n, 1, 5]);
     }
+    for (const p of b.pools || []) {
+      const part = row(p.title).parts[0];
+      spread(colBy(c, p.column).items, part.of - part.have, p.fillCap || 5, () => true, (n) => poolStart(p, n));
+    }
     // Gifts: one Level 1 from each own list that has none yet, then one per Rank level.
     const gCol = colBy(c, "Gifts");
-    const own = gCol.listOptions.filter((g) => g.own);
-    const has = (o) => gCol.list.some((x) => x.split(" (")[0] === o.split(" (")[0]);
-    const free = (level, src) => own.filter((g) => !src || g.source === src).flatMap((g) => g.options).filter((o) => giftLevel(o) === level && !has(o));
-    const need = () => b.giftAllowance - (gCol.list.length - b.keepGifts.length);
-    for (let lvl = 2; lvl <= b.rank && need() > 0; lvl++) {
-      if (!gCol.list.some((g) => giftLevel(g) === lvl)) { const o = R.pick(free(lvl)); if (o) gCol.list.push(o); }
+    if (gCol) {
+      const own = gCol.listOptions.filter((g) => g.own);
+      const has = (o) => gCol.list.some((x) => x.split(" (")[0] === o.split(" (")[0]);
+      const free = (level, src) => own.filter((g) => !src || g.source === src).flatMap((g) => g.options).filter((o) => giftLevel(o) === level && !has(o));
+      const need = () => b.giftAllowance - (gCol.list.length - b.keepGifts.length);
+      for (let lvl = 2; lvl <= b.rank && need() > 0; lvl++) {
+        if (!gCol.list.some((g) => giftLevel(g) === lvl)) { const o = R.pick(free(lvl)); if (o) gCol.list.push(o); }
+      }
+      for (const src of b.ownSources) {
+        if (need() > 0 && !gCol.list.some((g) => giftSource(g) === src)) { const o = R.pick(free(1, src)); if (o) gCol.list.push(o); }
+      }
+      while (need() > 0) { const o = R.pick(free(1)); if (!o) break; gCol.list.push(o); }
+      gCol.list.sort((x, y) => giftLevel(x) - giftLevel(y));
     }
-    for (const src of b.ownSources) {
-      if (need() > 0 && !gCol.list.some((g) => giftSource(g) === src)) { const o = R.pick(free(1, src)); if (o) gCol.list.push(o); }
-    }
-    while (need() > 0) { const o = R.pick(free(1)); if (!o) break; gCol.list.push(o); }
-    gCol.list.sort((x, y) => giftLevel(x) - giftLevel(y));
-    budget(c);
   }
 
-  // ---- Experience (Werewolf Revised costs; the Changing Breeds use the same chart).
-  // Each step is priced at the rating it starts from ("current rating").
+  // ---- Experience. Each step is priced at the rating it starts from ("current rating").
+  // Werewolf Revised chart (the Changing Breeds use it too) plus the Vampire kinds.
   const XP_STEP = {
     Attribute: (v) => v * 4,
     Ability: (v) => (v === 0 ? 3 : v * 2),
-    Background: (v) => (v === 0 ? 3 : v * 3), // Storyteller's call; not on the Revised chart
+    Background: (v) => (v === 0 ? 3 : v * 3), // Storyteller's call; not on the Revised charts
     Rage: (v) => v,
     Gnosis: (v) => v * 2,
     Willpower: (v) => v,
+    // Vampire: new Discipline 10; then clan × 5, Caitiff × 6, other × 7.
+    Discipline: (v, ctx) => (v === 0 ? 10 : v * (ctx.c.build.caitiff ? 6 : (ctx.c.build.clanDisciplines || []).includes(ctx.name) ? 5 : 7)),
+    Virtue: (v) => v * 2,
+    Humanity: (v) => v * 2,
   };
 
   function traitKind(c, si, ci) {
@@ -517,18 +552,21 @@ WOD.fera = (function () {
     if (s.title === "Attributes") return "Attribute";
     if (s.title === "Abilities") return "Ability";
     if (col.title === "Backgrounds") return "Background";
-    if (ADV.includes(col.title)) return col.title;
+    const pool = ((c.build && c.build.pools) || []).find((p) => p.column === col.title);
+    if (pool) return pool.kind;
+    if (c.build && advKinds(c).includes(col.title)) return col.title;
+    if (!c.build && DEFAULT_ADV.includes(col.title)) return col.title;
     return null; // Renown and the like change through play, not experience
   }
 
   // Cost of moving a rating from `from` to `to` (negative = refund). Steps below the
   // rating the character had when experience tracking began are free.
-  function xpForChange(kind, from, to, floor) {
+  function xpForChange(kind, from, to, floor, ctx = {}) {
     const step = XP_STEP[kind];
     if (!step) return 0;
     let cost = 0;
-    for (let v = Math.max(from, floor); v < to; v++) cost += step(v);
-    for (let v = Math.max(to, floor); v < from; v++) cost -= step(v);
+    for (let v = Math.max(from, floor); v < to; v++) cost += step(v, ctx);
+    for (let v = Math.max(to, floor); v < from; v++) cost -= step(v, ctx);
     return cost;
   }
   const giftXp = (label, own) => giftLevel(label) * (own ? 3 : 5);
@@ -662,6 +700,10 @@ WOD.fera = (function () {
         },
       });
       c.selection = sel;
+      c.choices = { breed, gender, groupA: aName, groupB: bName, rank };
+      c.choiceFields = { breed: "Breed", gender: "Gender", rank: "Rank" };
+      if (aName) c.choiceFields.groupA = cfg.groupA.label;
+      if (bName) c.choiceFields.groupB = cfg.groupB.label;
       c.freeAbilityDots = Object.values({ ...(cfg.free || {}), ...(b.free || {}) }).reduce((s, x) => s + x, 0);
       return c;
     }
@@ -699,5 +741,5 @@ WOD.fera = (function () {
     return text;
   }
 
-  return { blank, budget, fillRest, traitKind, xpForChange, giftXp, giftLevel, giftSource, costOf, XP_STEP, pickGender, firstName, simpleGame, mergeSets, ATTRIBUTES, ABILITIES, ARCHETYPES, HEALTH, COSTS, pts, G, giftEntries, giftLabel, mfLabel, giftPicker, giftOptions, attributes, abilities, backgrounds, renown, meritsFlaws, spendFreebies, formRows, attrsFromSheet, groupByCost, sheet };
+  return { blank, budget, fillRest, fitPools, traitKind, xpForChange, giftXp, giftLevel, giftSource, costOf, XP_STEP, pickGender, firstName, simpleGame, mergeSets, ATTRIBUTES, ABILITIES, ARCHETYPES, HEALTH, COSTS, pts, G, giftEntries, giftLabel, mfLabel, giftPicker, giftOptions, attributes, abilities, backgrounds, renown, meritsFlaws, spendFreebies, formRows, attrsFromSheet, groupByCost, sheet };
 })();

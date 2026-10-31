@@ -273,3 +273,22 @@ button[data-action].primary { background: var(--accent); border-color: var(--acc
   .xp-totals { font-size: 11px; }
   .xp-log { columns: 3; font-size: 10px; }
 }
+
+/* ---------- choices on the sheet (breed, auspice, tribe...) ---------- */
+select.hsel {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--ink);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+select.hsel:hover { background: var(--soft); }
+select.hsel:focus { outline: 2px solid var(--accent); }
+.col-text { margin: 4px 0 0; font-size: 14px; }
+@media print {
+  select.hsel { appearance: none; -webkit-appearance: none; }
+  .col-text { font-size: 10px; }
+}

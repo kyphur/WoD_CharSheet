@@ -458,7 +458,7 @@
       ...Object.entries(DATA.tribes).filter(([n]) => n !== tribe).map(([n, v]) => [`${n} (other tribe)`, n, v.gifts]),
     ];
 
-    return F.sheet({
+    const c = F.sheet({
       game: "Werewolf: the Apocalypse",
       name,
       header: [
@@ -487,6 +487,9 @@
         giftHint: `One Level 1 Gift each from your breed (${breed}), auspice (${auspice}) and tribe (${tribe})${rank > 1 ? `, plus one Gift of each Level from 2 to ${rank}` : ""}.`,
       },
     });
+    c.choices = { breed, auspice, tribe, gender, rank, books: opts.books };
+    c.choiceFields = { breed: "Breed", auspice: "Auspice", tribe: "Tribe", gender: "Gender", rank: "Rank" };
+    return c;
   }
 
   // Keep the Forms table in step with hand-edited Attributes.

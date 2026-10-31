@@ -127,6 +127,7 @@ window.WOD = (function () {
       if (options.length || col.allowCustom) html += addSelect(path, [{ options }], col.allowCustom, col.addLabel || "Add");
     }
     if (col.boxes) html += `<div class="trait"><span class="trait-name">Current</span>${boxes(col.boxes)}</div>`;
+    if (col.text) html += `<p class="col-text">${esc(col.text)}</p>`;
     if (col.list) {
       html += col.list.length
         ? `<ul>${col.list.map((x, ii) => `<li><button class="remove no-print" data-remove="${path}.${ii}" title="Remove">&times;</button>${esc(x)}</li>`).join("")}</ul>`
@@ -157,7 +158,7 @@ window.WOD = (function () {
     const cls = left === 0 ? "ok" : left > 0 ? "left" : "over";
     html += `<div class="brow"><strong>Freebie points</strong> <span class="chip ${cls}">${r.used} of ${r.total} used${left > 0 ? ` — ${left} left` : left < 0 ? ` — ${-left} too many` : " ✓"}</span>`;
     if (r.flawBonus) html += ` <span class="bhint">(includes ${r.flawBonus} from Flaws)</span>`;
-    html += `<div class="bhint">Costs: Attribute 5 · Ability 2 · Background 1 · Gift 7 · Rage 1 · Gnosis 2 · Willpower 1 · Merits cost their points · Flaws give up to 7.</div>`;
+    html += `<div class="bhint">${esc(r.costText)}</div>`;
     if (r.freebieUse.length) html += `<div class="bhint">Spent on: ${esc(r.freebieUse.map((x) => `${x.what} (${x.cost})`).join(", "))}</div>`;
     html += `</div>`;
     if (r.warnings.length) html += `<ul class="warnings">${r.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>`;
@@ -175,7 +176,8 @@ window.WOD = (function () {
       <button data-action="xp-add" class="primary">Add experience</button>
       <label class="xp-free"><input type="checkbox" data-action="free-edit"${c.freeEdit ? " checked" : ""}> Fix mistakes without spending XP</label>
     </div>`;
-    html += `<p class="bhint no-print">Click a dot to raise a rating with experience: Attribute = current × 4, Ability = current × 2 (new: 3), Gift = Level × 3 (other lists: × 5), Rage = current, Gnosis = current × 2, Willpower = current, Background = current × 3 (new: 3, with the Storyteller's OK). Lowering a dot you bought gives the XP back.</p>`;
+    const xpText = (c.build && c.build.xpText) || "Attribute = current × 4, Ability = current × 2 (new: 3), Gift = Level × 3 (other lists: × 5), Rage = current, Gnosis = current × 2, Willpower = current, Background = current × 3 (new: 3, with the Storyteller's OK).";
+    html += `<p class="bhint no-print">Click a dot to raise a rating with experience: ${esc(xpText)} Lowering a dot you bought gives the XP back.</p>`;
     const log = c.xp.log;
     if (log.length) {
       html += `<ul class="xp-log">${log
@@ -189,7 +191,7 @@ window.WOD = (function () {
     return html + `</section>`;
   }
 
-  function renderSheet(c) {
+  function renderSheet(c, game) {
     let html = `<div class="sheet-title"><h1>${esc(c.game)}</h1></div>`;
     if (c.stage === "build") {
       html += `<p class="hint no-print"><strong>Build your character:</strong> type a name and concept, click dots to spend points, and use the <strong>+ Add</strong> boxes for Backgrounds, Gifts, Merits and Flaws. The box below keeps count. When everything is spent, click <strong>Finish character</strong>.</p>`;
@@ -201,7 +203,17 @@ window.WOD = (function () {
     }
 
     html += `<div class="header-grid">`;
+    const bound = Object.fromEntries(Object.entries(c.choiceFields || {}).map(([id, label]) => [label, id]));
     c.header.forEach(([label, value, choices], i) => {
+      const opt = game && bound[label] && game.options.find((o) => o.id === bound[label]);
+      if (opt && c.choices) {
+        // A dropdown: changing it re-applies that choice's starting traits.
+        const cur = String(c.choices[opt.id] ?? "");
+        html += `<label class="field"><span class="label">${esc(label)}</span><select class="value hsel" data-choice="${esc(opt.id)}">`;
+        html += (opt.choicesFor ? opt.choicesFor(c.choices) : opt.choices).map((ch) => `<option value="${esc(ch)}"${String(ch) === cur ? " selected" : ""}>${esc(String(ch) === cur ? value : ch)}</option>`).join("");
+        html += `</select></label>`;
+        return;
+      }
       const list = choices ? ` list="hdr-list-${i}"` : "";
       const ph = !value && (label === "Name" || label === "Concept") && c.stage === "build" ? ` placeholder="type here"` : "";
       html += `<label class="field"><span class="label">${esc(label)}</span><input class="value" data-header="${i}" value="${esc(value)}"${list}${ph}>`;
@@ -216,6 +228,9 @@ window.WOD = (function () {
     });
 
     html += `<section class="split">`;
+    if (c.panel) {
+      html += `<div><h2>${esc(c.panel.title)}</h2>${c.panel.lines.map((l) => `<p>${l[0] ? `<strong>${esc(l[0])}:</strong> ` : ""}${esc(l[1])}</p>`).join("")}</div>`;
+    }
     if (c.table) {
       // Short headings keep wide form tables (up to 7 traits) inside the page.
       const ABBR = { Strength: "Str", Dexterity: "Dex", Stamina: "Sta", Charisma: "Cha", Manipulation: "Man", Appearance: "App", Perception: "Per" };
@@ -275,7 +290,7 @@ window.WOD = (function () {
     function buildOptions() {
       optsBox.innerHTML = "";
       for (const o of currentGame().options) {
-        if (isPc() && o.id === "meritsFlaws") continue; // players pick their own
+        if (isPc() && (o.id === "meritsFlaws" || o.npcOnly)) continue; // players pick their own
         const label = document.createElement("label");
         label.textContent = o.label + " ";
         let input;
@@ -309,7 +324,7 @@ window.WOD = (function () {
 
     function draw() {
       if (character.stage === "build") WOD.fera.budget(character);
-      sheet.innerHTML = renderSheet(character);
+      sheet.innerHTML = renderSheet(character, currentGame());
       document.title = `${character.name || "New character"} — ${currentGame().label}`;
       save();
     }
@@ -333,6 +348,7 @@ window.WOD = (function () {
       if (isPc()) {
         character = g.generate({ ...opts, freebies: 0, meritsFlaws: "No" });
         WOD.fera.blank(character, opts.freebies);
+        if (g.recompute) g.recompute(character);
       } else {
         character = g.generate(opts);
         character.mode = "npc";
@@ -370,7 +386,7 @@ window.WOD = (function () {
       const s = character.sections[si];
       const col = s.columns[ci];
       const key = traitKey(s, col, name);
-      const cost = F.xpForChange(kind, from, to, character.xpBase[key] ?? 0);
+      const cost = F.xpForChange(kind, from, to, character.xpBase[key] ?? 0, { c: character, name });
       if (!cost) return true;
       const left = xpTotals(character).left;
       if (cost > left && !confirm(`That costs ${cost} XP, but there are only ${left} unspent. Buy it anyway?`)) return false;
@@ -471,7 +487,90 @@ window.WOD = (function () {
       }
     });
 
+    // Breed, auspice, tribe (etc.) changed on the sheet: make two blank templates, one
+    // with the old choice and one with the new, and move the character by the difference
+    // so starting Rage/Gnosis/Willpower, free dots, Gift lists, Renown and forms follow
+    // while everything the player picked or bought stays.
+    function changeChoice(id, value) {
+      const g = currentGame();
+      const c = character;
+      const quiet = { freebies: 0, meritsFlaws: "No" };
+      const next = { ...c.choices, [id]: id === "rank" ? Number(value) : value };
+      const before = g.generate({ ...c.choices, ...quiet });
+      const after = g.generate({ ...next, ...quiet });
+      const cols = (ch) => ch.sections.flatMap((s) => s.columns);
+      const col = (ch, title) => cols(ch).find((x) => x.title.split(" (")[0] === title || x.title.startsWith(title));
+      const clamp = (v, max) => Math.max(0, Math.min(max, v));
+
+      for (const [, label] of Object.entries(after.choiceFields || {})) {
+        const h = c.header.find((x) => x[0] === label);
+        const t = after.header.find((x) => x[0] === label);
+        if (h && t) h[1] = t[1];
+      }
+      // Single ratings that come from the choices (Rage, Gnosis, Willpower, Humanity...).
+      const advNames = (after.build && after.build.advKinds) || ["Rage", "Gnosis", "Willpower"];
+      for (const k of advNames) {
+        const a = col(after, k), b0 = col(before, k), mine = col(c, k);
+        if (!a || !b0 || !mine || !mine.items) continue;
+        const delta = a.items[0][1] - b0.items[0][1];
+        mine.items[0][1] = clamp(mine.items[0][1] + delta, mine.items[0][2]);
+        if (c.build && c.build.adv && k in c.build.adv) c.build.adv[k] += delta;
+      }
+      // Free Ability dots and Background dots that come with a breed or group.
+      const shift = (title, oldMap, newMap, addIfMissing) => {
+        for (const n of new Set([...Object.keys(oldMap || {}), ...Object.keys(newMap || {})])) {
+          const d = ((newMap || {})[n] || 0) - ((oldMap || {})[n] || 0);
+          if (!d) continue;
+          const section = c.sections.find((s) => s.title === title);
+          const holder = section ? section.columns.find((x) => x.items.some((it) => it[0] === n)) : col(c, title);
+          const it = holder && holder.items.find((x) => x[0] === n);
+          if (it) it[1] = clamp(it[1] + d, it[2]);
+          else if (addIfMissing && d > 0) col(c, title).items.push([n, d, 5]);
+        }
+      };
+      shift("Abilities", before.build.freeAbil, after.build.freeAbil, false);
+      shift("Backgrounds", before.build.bgStart, after.build.bgStart, true);
+      // Point pools whose items depend on the choice (e.g. clan Disciplines).
+      for (const pool of after.build.pools || []) {
+        const mine = col(c, pool.column);
+        const theirs = col(after, pool.column);
+        if (!mine || !theirs) continue;
+        mine.items = [...mine.items.filter((it) => it[1] > 0 || theirs.items.some((x) => x[0] === it[0])), ...theirs.items.filter((x) => !mine.items.some((it) => it[0] === x[0])).map((x) => [x[0], 0, x[2]])];
+        if (theirs.addOptions) mine.addOptions = theirs.addOptions;
+      }
+      // Lists and tables that simply follow the choice; free Gifts follow it too.
+      const gifts = col(c, "Gifts");
+      if (gifts) {
+        const theirs = col(after, "Gifts");
+        gifts.listOptions = theirs.listOptions;
+        const oldFree = before.build.keepGifts || [];
+        const newFree = after.build.keepGifts || [];
+        const isFree = (l, names) => names.some((n) => l.startsWith(n + " ("));
+        gifts.list = gifts.list.filter((l) => !isFree(l, oldFree) || isFree(l, newFree));
+        for (const l of theirs.list) if (isFree(l, newFree) && !gifts.list.some((x) => x.split(" (")[0] === l.split(" (")[0])) gifts.list.unshift(l);
+      }
+      const renown = col(c, "Renown");
+      if (renown) Object.assign(renown, JSON.parse(JSON.stringify(col(after, "Renown"))));
+      for (const k of ["table", "panel", "extras", "selection", "choices", "choiceFields"]) if (k in after) c[k] = after[k];
+      c.notes = after.notes.filter((n) => !(c.mode === "pc" && n.includes("left over")));
+      for (const x of cols(after)) {
+        if (x.text && col(c, x.title.split(" (")[0])) col(c, x.title.split(" (")[0]).text = x.text;
+        if (x.boxes && col(c, x.title)) col(c, x.title).boxes = x.boxes;
+      }
+      const keep = { freebies: c.build.freebies, adv: c.build.adv, result: c.build.result };
+      const kept = gifts ? gifts.list.filter((l) => (after.build.keepGifts || []).some((n) => l.startsWith(n + " ("))).length : 0;
+      c.build = { ...after.build, ...keep };
+      if (gifts) c.build.giftAllowance = col(after, "Gifts").list.length - kept;
+      if (c.mode !== "pc") delete c.build.adv;
+      changed();
+    }
+
     sheet.addEventListener("change", (e) => {
+      const choice = e.target.closest("[data-choice]");
+      if (choice) {
+        changeChoice(choice.dataset.choice, choice.value);
+        return;
+      }
       const free = e.target.closest('[data-action="free-edit"]');
       if (free) {
         character.freeEdit = free.checked;
@@ -486,6 +585,14 @@ window.WOD = (function () {
       if (value === "__custom") {
         value = (prompt(col.customPrompt || "Type the name:") || "").trim();
         if (!value) { sel.value = ""; return; }
+      }
+      // Merits and Flaws with a range of costs ("1-5 pts", "2 or 4 pts"): ask which.
+      const range = value.match(/\((\d+)\s*(?:-|–|or)\s*(\d+) pts?/);
+      if (range) {
+        const pick = prompt(`How many points for ${value.split(" (")[0]}? (${range[1]} to ${range[2]})`, range[1]);
+        const n = Math.round(Number(pick));
+        if (pick === null || !(n >= Number(range[1]) && n <= Number(range[2]))) { sel.value = ""; return; }
+        value = value.replace(range[0], `(${n} pt${n === 1 ? "" : "s"}`);
       }
       if (col.items) {
         if (!payXp(si, ci, value, 0, 1)) { sel.value = ""; return; }

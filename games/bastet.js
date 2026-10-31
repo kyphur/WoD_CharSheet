@@ -162,7 +162,7 @@
       ...Object.entries(DATA.tribes).filter(([n]) => n !== tribe).map(([n, v]) => [`${n} (other tribe)`, n, v.gifts]),
     ];
 
-    return F.sheet({
+    const c = F.sheet({
       game: "Bastet",
       name,
       header: [
@@ -191,6 +191,9 @@
         giftHint: `Three Level 1 Gifts in any mix from the General, ${breed} (breed) and ${tribe} (tribe) lists${rank > 1 ? `, plus one Gift of each Level from 2 to ${rank}` : ""}.`,
       },
     });
+    c.choices = { breed, pryio, tribe, gender, rank, books: opts.books };
+    c.choiceFields = { breed: "Breed", pryio: "Pryio", tribe: "Tribe", gender: "Gender", rank: "Rank" };
+    return c;
   }
 
   function recompute(c) {
